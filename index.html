@@ -2,57 +2,160 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>My App</title>
+  <title>My App with Firebase Auth</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 320px;
+      display: none;
+    }
+    /* Visible on load: login card */
+    #login { display: block; }
+    input, button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 8px;
+      box-sizing: border-box;
+    }
+    #error {
+      color: red;
+      height: 1em;
+      margin-top: 8px;
+    }
+    #adminBtn {
+      display: none; /* only shown for admin */
+      margin-top: 12px;
+    }
+  </style>
+</head>
 
-  <!-- your existing CSS… -->
+<body>
+  <!-- LOGIN -->
+  <div id="login" class="card">
+    <h2>Login</h2>
+    <input id="email"    type="email"    placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button id="loginBtn">Log In</button>
+    <div id="error"></div>
+  </div>
 
-  <!-- ← Paste the Firebase SDK snippet here: -->
+  <!-- WELCOME -->
+  <div id="welcome" class="card">
+    <h2>Welcome!</h2>
+    <p>Logged in as <strong><span id="currentUser"></span></strong>.</p>
+    <button id="adminBtn">Go to Admin Panel</button>
+    <button id="logoutBtn">Log Out</button>
+  </div>
+
+  <!-- ADMIN PANEL (placeholder) -->
+  <div id="adminPanel" class="card">
+    <h2>Admin Panel</h2>
+    <p>This screen is only visible to your <em>admin</em> user.</p>
+    <p>To add/edit/delete users and passwords, go to the<br>
+      <a href="https://console.firebase.google.com/" target="_blank">Firebase Console → Authentication → Users</a>.
+    </p>
+    <button id="backBtn">Back</button>
+  </div>
+
+  <!-- FIREBASE + APP LOGIC -->
   <script type="module">
-    // Import the functions you need from the SDKs
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    // 1) Load Firebase modules
+    import { initializeApp } 
+      from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { 
+      getAuth,
+      signInWithEmailAndPassword,
+      onAuthStateChanged,
+      signOut
+    } 
+      from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
-    // Your web app's Firebase configuration
+    // 2) Your Firebase config (copy exactly from your console)
     const firebaseConfig = {
-      apiKey:           "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8fTOQVk",
-      authDomain:       "aeroclubwebsiteapp.firebaseapp.com",
-      projectId:        "aeroclubwebsiteapp",
-      storageBucket:    "aeroclubwebsiteapp.firebasestorage.app",
-      messagingSenderId:"529559179400",
-      appId:            "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
-      measurementId:    "G-X69J831LCJ"
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8fTOQVk",
+      authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
+      projectId:         "aeroclubwebsiteapp",
+      storageBucket:     "aeroclubwebsiteapp.firebasestorage.app",
+      messagingSenderId: "529559179400",
+      appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
+      measurementId:     "G-X69J831LCJ"
     };
-
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
+    const app  = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // Now wire up your login/logout logic
-    // (Assuming you have elements with IDs: username, password, loginBtn, logoutBtn, error, etc.)
+    // 3) Page elements
+    const loginCard    = document.getElementById('login');
+    const welcomeCard  = document.getElementById('welcome');
+    const adminCard    = document.getElementById('adminPanel');
+    const emailInput   = document.getElementById('email');
+    const passInput    = document.getElementById('password');
+    const loginBtn     = document.getElementById('loginBtn');
+    const errorDiv     = document.getElementById('error');
+    const currentUser  = document.getElementById('currentUser');
+    const adminBtn     = document.getElementById('adminBtn');
+    const logoutBtn    = document.getElementById('logoutBtn');
+    const backBtn      = document.getElementById('backBtn');
+
+    const ADMIN_EMAIL = "admin@you.com"; // ← change to whatever admin email you create
+
+    function show(el){ el.style.display = 'block'; }
+    function hide(el){ el.style.display = 'none';  }
+
+    // 4) Log in via Firebase
     loginBtn.addEventListener('click', () => {
-      const email = username.value;
-      const pass  = password.value;
-      signInWithEmailAndPassword(auth, email, pass)
-        .catch(e => error.textContent = e.message);
+      errorDiv.textContent = '';
+      signInWithEmailAndPassword(auth, emailInput.value, passInput.value)
+        .catch(err => {
+          errorDiv.textContent = err.message;
+        });
     });
 
+    // 5) React to auth state
     onAuthStateChanged(auth, user => {
       if (user) {
-        // User is signed in—show your welcome/admin UI
+        // → Signed in
+        currentUser.textContent = user.email;
+        hide(loginCard);
+        show(welcomeCard);
+        // only show “Go to Admin Panel” if this is your admin account
+        if (user.email === ADMIN_EMAIL) show(adminBtn);
+        else hide(adminBtn);
       } else {
-        // User is signed out—show login form
+        // → Signed out
+        hide(welcomeCard);
+        hide(adminCard);
+        show(loginCard);
+        errorDiv.textContent = '';
       }
     });
 
+    // 6) Admin navigation
+    adminBtn.addEventListener('click', () => {
+      hide(welcomeCard);
+      show(adminCard);
+    });
+    backBtn.addEventListener('click', () => {
+      hide(adminCard);
+      show(welcomeCard);
+    });
+
+    // 7) Log out
     logoutBtn.addEventListener('click', () => {
       signOut(auth);
     });
+
   </script>
-
-</head>
-<body>
-
-  <!-- your existing HTML: login card, welcome card, admin panel… -->
-
 </body>
 </html>
