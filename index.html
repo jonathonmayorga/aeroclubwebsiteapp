@@ -8,9 +8,7 @@
       font-family: sans-serif;
       background: #f0f0f0;
       margin: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       height: 100vh;
     }
     .card {
@@ -21,28 +19,37 @@
       width: 320px;
       display: none;
     }
-    /* Visible on load: login card */
     #login { display: block; }
     input, button {
-      width: 100%;
-      padding: 8px;
-      margin-top: 8px;
-      box-sizing: border-box;
+      width: 100%; padding: 8px; margin-top: 8px; box-sizing: border-box;
     }
-    #error {
-      color: red;
-      height: 1em;
-      margin-top: 8px;
-    }
-    #adminBtn {
-      display: none; /* only shown for admin */
-      margin-top: 12px;
-    }
+    #error { color: red; height: 1em; margin-top: 8px; }
+    #adminBtn { display: none; margin-top: 12px; }
   </style>
+
+  <!-- 1) Firebase compat libraries -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+  <!-- 2) Your Firebase config: copy EXACTLY from Firebase Console → Project Settings → CDN → Config -->
+  <script>
+    const firebaseConfig = {
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
+      authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
+      projectId:         "aeroclubwebsiteapp",
+      storageBucket:     "aeroclubwebsiteapp.appspot.com",     // ← note the “.appspot.com”
+      messagingSenderId: "529559179400",
+      appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
+      measurementId:     "G-X69J831LCJ"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+  </script>
 </head>
 
 <body>
-  <!-- LOGIN -->
+  <!-- LOGIN CARD -->
   <div id="login" class="card">
     <h2>Login</h2>
     <input id="email"    type="email"    placeholder="Email">
@@ -51,7 +58,7 @@
     <div id="error"></div>
   </div>
 
-  <!-- WELCOME -->
+  <!-- WELCOME CARD -->
   <div id="welcome" class="card">
     <h2>Welcome!</h2>
     <p>Logged in as <strong><span id="currentUser"></span></strong>.</p>
@@ -59,103 +66,78 @@
     <button id="logoutBtn">Log Out</button>
   </div>
 
-  <!-- ADMIN PANEL (placeholder) -->
+  <!-- ADMIN PANEL (visible only to your admin email) -->
   <div id="adminPanel" class="card">
     <h2>Admin Panel</h2>
-    <p>This screen is only visible to your <em>admin</em> user.</p>
-    <p>To add/edit/delete users and passwords, go to the<br>
-      <a href="https://console.firebase.google.com/" target="_blank">Firebase Console → Authentication → Users</a>.
+    <p>This screen is only visible to <em>admin@you.com</em> (change in code below).</p>
+    <p>To manage users, go to the Firebase console:<br>
+      <a href="https://console.firebase.google.com" target="_blank">
+        Firebase → Authentication → Users
+      </a>
     </p>
     <button id="backBtn">Back</button>
   </div>
 
-  <!-- FIREBASE + APP LOGIC -->
-  <script type="module">
-    // 1) Load Firebase modules
-    import { initializeApp } 
-      from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { 
-      getAuth,
-      signInWithEmailAndPassword,
-      onAuthStateChanged,
-      signOut
-    } 
-      from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+  <!-- 3) App logic -->
+  <script>
+    // Elements
+    const loginDiv   = document.getElementById('login');
+    const welcomeDiv = document.getElementById('welcome');
+    const adminDiv   = document.getElementById('adminPanel');
+    const emailEl    = document.getElementById('email');
+    const passEl     = document.getElementById('password');
+    const loginBtn   = document.getElementById('loginBtn');
+    const errorEl    = document.getElementById('error');
+    const userSpan   = document.getElementById('currentUser');
+    const adminBtn   = document.getElementById('adminBtn');
+    const logoutBtn  = document.getElementById('logoutBtn');
+    const backBtn    = document.getElementById('backBtn');
 
-    // 2) Your Firebase config (copy exactly from your console)
-    const firebaseConfig = {
-      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8fTOQVk",
-      authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
-      projectId:         "aeroclubwebsiteapp",
-      storageBucket:     "aeroclubwebsiteapp.firebasestorage.app",
-      messagingSenderId: "529559179400",
-      appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
-      measurementId:     "G-X69J831LCJ"
-    };
-    const app  = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    // 3) Page elements
-    const loginCard    = document.getElementById('login');
-    const welcomeCard  = document.getElementById('welcome');
-    const adminCard    = document.getElementById('adminPanel');
-    const emailInput   = document.getElementById('email');
-    const passInput    = document.getElementById('password');
-    const loginBtn     = document.getElementById('loginBtn');
-    const errorDiv     = document.getElementById('error');
-    const currentUser  = document.getElementById('currentUser');
-    const adminBtn     = document.getElementById('adminBtn');
-    const logoutBtn    = document.getElementById('logoutBtn');
-    const backBtn      = document.getElementById('backBtn');
-
-    const ADMIN_EMAIL = "admin@you.com"; // ← change to whatever admin email you create
+    const ADMIN_EMAIL = "admin@you.com"; // ← change to your admin account
 
     function show(el){ el.style.display = 'block'; }
     function hide(el){ el.style.display = 'none';  }
 
-    // 4) Log in via Firebase
+    // Log in
     loginBtn.addEventListener('click', () => {
-      errorDiv.textContent = '';
-      signInWithEmailAndPassword(auth, emailInput.value, passInput.value)
-        .catch(err => {
-          errorDiv.textContent = err.message;
-        });
+      errorEl.textContent = '';
+      auth.signInWithEmailAndPassword(emailEl.value, passEl.value)
+        .catch(e => errorEl.textContent = e.message);
     });
 
-    // 5) React to auth state
-    onAuthStateChanged(auth, user => {
+    // React to auth state
+    auth.onAuthStateChanged(user => {
       if (user) {
-        // → Signed in
-        currentUser.textContent = user.email;
-        hide(loginCard);
-        show(welcomeCard);
-        // only show “Go to Admin Panel” if this is your admin account
+        // signed in
+        userSpan.textContent = user.email;
+        hide(loginDiv);
+        show(welcomeDiv);
+        // only show admin button for your ADMIN_EMAIL
         if (user.email === ADMIN_EMAIL) show(adminBtn);
         else hide(adminBtn);
       } else {
-        // → Signed out
-        hide(welcomeCard);
-        hide(adminCard);
-        show(loginCard);
-        errorDiv.textContent = '';
+        // signed out
+        hide(welcomeDiv);
+        hide(adminDiv);
+        show(loginDiv);
+        errorEl.textContent = '';
       }
     });
 
-    // 6) Admin navigation
+    // Navigation
     adminBtn.addEventListener('click', () => {
-      hide(welcomeCard);
-      show(adminCard);
+      hide(welcomeDiv);
+      show(adminDiv);
     });
     backBtn.addEventListener('click', () => {
-      hide(adminCard);
-      show(welcomeCard);
+      hide(adminDiv);
+      show(welcomeDiv);
     });
 
-    // 7) Log out
+    // Log out
     logoutBtn.addEventListener('click', () => {
-      signOut(auth);
+      auth.signOut();
     });
-
   </script>
 </body>
 </html>
