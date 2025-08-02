@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>My App – Welcome</title>
   <style>
-    /* Center and style the boxes */
     body {
       font-family: sans-serif;
       background: #f0f0f0;
@@ -14,32 +13,31 @@
       justify-content: center;
       height: 100vh;
     }
-    #login, #welcome {
+    .card {
       background: white;
       padding: 20px;
       border-radius: 5px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      width: 300px;
+      width: 320px;
     }
-    /* Hide the welcome section until after login */
-    #welcome { display: none; }
-    input, button {
+    /* hide sections by default */
+    #welcome, #adminPanel { display: none; }
+    input, select, button {
       width: 100%;
       padding: 8px;
       margin-top: 8px;
       box-sizing: border-box;
     }
-    #error {
-      color: red;
-      height: 1em;
-      margin-top: 8px;
-    }
+    #error { color: red; height: 1em; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+    .action-btn { width: auto; padding: 4px 8px; margin-right: 4px; }
   </style>
 </head>
 <body>
 
-  <!-- Login form -->
-  <div id="login">
+  <!-- LOGIN -->
+  <div id="login" class="card">
     <h2>Login</h2>
     <input id="username" type="text" placeholder="Username">
     <input id="password" type="password" placeholder="Password">
@@ -47,33 +45,159 @@
     <div id="error"></div>
   </div>
 
-  <!-- Hidden until login succeeds -->
-  <div id="welcome">
-    <h1>Welcome!</h1>
-    <p>You have successfully logged in.</p>
+  <!-- WELCOME -->
+  <div id="welcome" class="card">
+    <h2>Welcome!</h2>
+    <p>You’re logged in as <strong><span id="currentUser"></span></strong> (<span id="currentRole"></span>).</p>
+    <button id="adminBtn">Go to Admin Panel</button>
+    <button id="logoutBtn">Log Out</button>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div id="adminPanel" class="card">
+    <h2>Admin Panel</h2>
+
+    <!-- User List -->
+    <table>
+      <thead>
+        <tr><th>Username</th><th>Role</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="userTable"></tbody>
+    </table>
+
+    <!-- Add / Edit Form -->
+    <h3 id="formTitle">Add User</h3>
+    <input id="newUsername" placeholder="Username">
+    <input id="newPassword" type="password" placeholder="Password">
+    <select id="newRole">
+      <option value="admin">Admin</option>
+      <option value="user">User</option>
+    </select>
+    <button id="saveUserBtn">Save</button>
+    <button id="backBtn">Back</button>
   </div>
 
   <script>
-    // 1️⃣ Define allowed users here (username:password)
-    const users = {
-      "admin": "password123",
-      "user1": "pass1"
+    // 1️⃣ Default users
+    const defaultUsers = {
+      admin: { password: 'password123', role: 'admin' },
+      user1: { password: 'pass1', role: 'user' }
     };
+    // Load from localStorage, or fall back to default
+    let users = JSON.parse(localStorage.getItem('users')) || defaultUsers;
+    let currentUser = null;
 
-    // 2️⃣ When the button is clicked, check credentials
-    document.getElementById('loginBtn').addEventListener('click', () => {
+    // Utility: persist users
+    function saveUsers() {
+      localStorage.setItem('users', JSON.stringify(users));
+    }
+
+    // Show/hide helpers
+    function show(id) { document.getElementById(id).style.display = 'block'; }
+    function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+    // 2️⃣ LOGIN logic
+    document.getElementById('loginBtn').onclick = () => {
       const u = document.getElementById('username').value;
       const p = document.getElementById('password').value;
-      if (users[u] === p) {
-        // Hide login, show welcome
-        document.getElementById('login').style.display = 'none';
-        document.getElementById('welcome').style.display = 'block';
+      if (users[u] && users[u].password === p) {
+        currentUser = u;
+        // show welcome
+        document.getElementById('currentUser').textContent = u;
+        document.getElementById('currentRole').textContent = users[u].role;
+        hide('login');
+        show('welcome');
+        // only show admin button if role is admin
+        if (users[u].role === 'admin') show('adminBtn');
+        else hide('adminBtn');
       } else {
-        // Show error message
-        document.getElementById('error').textContent = 'Invalid username or password';
+        document.getElementById('error').textContent = 'Invalid credentials';
       }
-    });
-  </script>
+    };
 
+    // Log out
+    document.getElementById('logoutBtn').onclick = () => {
+      currentUser = null;
+      hide('welcome'); hide('adminPanel');
+      show('login');
+      document.getElementById('error').textContent = '';
+    };
+
+    // 3️⃣ ADMIN BUTTON
+    document.getElementById('adminBtn').onclick = () => {
+      populateUserTable();
+      hide('welcome');
+      show('adminPanel');
+    };
+    document.getElementById('backBtn').onclick = () => {
+      hide('adminPanel');
+      show('welcome');
+    };
+
+    // 4️⃣ Populate user list
+    function populateUserTable() {
+      const tbody = document.getElementById('userTable');
+      tbody.innerHTML = '';
+      Object.keys(users).forEach(username => {
+        const { role } = users[username];
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${username}</td>
+          <td>${role}</td>
+          <td>
+            <button class="action-btn" onclick="editUser('${username}')">Edit</button>
+            <button class="action-btn" onclick="deleteUser('${username}')">Delete</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 5️⃣ Add / Edit form
+    let editMode = false;
+    let userToEdit = null;
+
+    document.getElementById('saveUserBtn').onclick = () => {
+      const u = document.getElementById('newUsername').value.trim();
+      const p = document.getElementById('newPassword').value;
+      const r = document.getElementById('newRole').value;
+      if (!u || !p) return alert('Username & password required');
+
+      if (editMode && userToEdit) {
+        // rename if changed
+        if (u !== userToEdit) {
+          delete users[userToEdit];
+        }
+      }
+      // set or overwrite
+      users[u] = { password: p, role: r };
+      saveUsers();
+      resetForm();
+      populateUserTable();
+    };
+
+    function editUser(u) {
+      editMode = true;
+      userToEdit = u;
+      document.getElementById('formTitle').textContent = `Edit “${u}”`;
+      document.getElementById('newUsername').value = u;
+      document.getElementById('newPassword').value = users[u].password;
+      document.getElementById('newRole').value = users[u].role;
+    }
+
+    function deleteUser(u) {
+      if (u === currentUser) return alert("Can't delete yourself!");
+      delete users[u];
+      saveUsers();
+      populateUserTable();
+    }
+
+    function resetForm() {
+      editMode = false; userToEdit = null;
+      document.getElementById('formTitle').textContent = 'Add User';
+      document.getElementById('newUsername').value = '';
+      document.getElementById('newPassword').value = '';
+      document.getElementById('newRole').value = 'user';
+    }
+  </script>
 </body>
 </html>
