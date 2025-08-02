@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Home – My App</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #fff;
+      margin: 0;
+      padding: 40px;
+    }
+    #content {
+      max-width: 600px;
+      margin: auto;
+    }
+    button {
+      padding: 8px 12px;
+      margin-top: 16px;
+    }
+  </style>
+
+  <!-- Firebase SDKs (same as index.html) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    // 1) Init Firebase (copy your config exactly)
+    const firebaseConfig = {
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
+      authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
+      projectId:         "aeroclubwebsiteapp",
+      storageBucket:     "aeroclubwebsiteapp.appspot.com",
+      messagingSenderId: "529559179400",
+      appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
+      measurementId:     "G-X69J831LCJ"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db   = firebase.firestore();
+
+    // 2) If not logged in, send back to index.html
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = 'index.html';
+      } else {
+        // If you want, you can fetch their role again and adjust the page
+        document.getElementById('userEmail').textContent = user.email;
+      }
+    });
+
+    // 3) Log out button
+    function logout(){
+      auth.signOut().then(()=> {
+        window.location.href = 'index.html';
+      });
+    }
+  </script>
+</head>
+<body>
+  <div id="content">
+    <h1>Welcome to Your Homepage</h1>
+    <p>You’re logged in as <strong><span id="userEmail"></span></strong>.</p>
+
+    <!-- Example: only show Admin link if they’re an admin in Firestore -->
+    <p id="adminLink" style="display:none;">
+      <a href="admin.html">Go to Admin Panel</a>
+    </p>
+
+    <button onclick="logout()">Log Out</button>
+  </div>
+</body>
+</html>
