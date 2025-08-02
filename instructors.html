@@ -4,20 +4,83 @@
   <meta charset="UTF-8">
   <title>Manage Instructors</title>
   <link rel="stylesheet" href="css/style.css">
+
+  <!-- Firebase Auth Guard -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8fTOQVk",
+      authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
+      projectId:         "aeroclubwebsiteapp",
+      storageBucket:     "aeroclubwebsiteapp.appspot.com",
+      messagingSenderId: "529559179400",
+      appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
+      measurementId:     "G-X69J831LCJ"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    auth.onAuthStateChanged(u => { if (!u) window.location.href='index.html'; });
+  </script>
 </head>
 <body>
   <div class="container">
-    <div class="card">
+    <!-- NAVIGATION -->
+    <nav>
+      <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="StudentIndex.html">Students</a></li>
+        <li><a href="instructors.html">Instructors</a></li>
+        <li><a href="flights.html">Flights</a></li>
+        <li><a href="admin.html">Admin Panel</a></li>
+      </ul>
+    </nav>
+
+    <div class="header card">
       <h2>Instructors</h2>
+      <button id="openModalBtn">+ Add Instructor</button>
+    </div>
+
+    <div id="instructorList"></div>
+  </div>
+
+  <!-- Add Instructor Modal -->
+  <div id="instructorModal" class="modal">
+    <div class="modal-content">
+      <button id="closeModalBtn" class="close-btn">&times;</button>
+      <h3>Add Instructor</h3>
       <form id="instructorForm">
-        <input name="name" placeholder="Instructor Name" required>
-        <button type="submit">Add Instructor</button>
+        <input name="name" placeholder="Full Name" required>
+        <input name="arn"  placeholder="ARN" required>
+        <select name="grade" required>
+          <option value="">Select Grade</option>
+          <option>Grade 1</option>
+          <option>Grade 2</option>
+          <option>Grade 3</option>
+          <option>Grade 3+</option>
+        </select>
+        <label>Medical 1</label>
+        <input name="med1" type="date" required>
+        <label>Medical 2</label>
+        <input name="med2" type="date" required>
+        <label>DAMP Course</label>
+        <input name="damp" type="date" required>
+        <label>WWCC</label>
+        <input name="wwcc" type="date" required>
+        <button type="submit">Save</button>
       </form>
-      <table id="instructorTable"></table>
-      <p><a href="flights.html">→ Go to Flights</a></p>
     </div>
   </div>
+
+  <!-- Profile Modal -->
+  <div id="profileModal" class="modal">
+    <div class="modal-content">
+      <button id="closeProfileBtn" class="close-btn">&times;</button>
+      <h3>Instructor Profile</h3>
+      <div id="profileContent"></div>
+    </div>
+  </div>
+
   <script src="js/instructors.js"></script>
 </body>
 </html>
-
