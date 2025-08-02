@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Control Panel</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Tabs */
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab-button {
+      background: var(--secondary);
+      border: none;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .tab-button.active {
+      background: var(--primary);
+      color: #fff;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
+
+  <!-- Firebase SDKs & Init -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
+      authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
+      projectId:         "aeroclubwebsiteapp",
+      storageBucket:     "aeroclubwebsiteapp.appspot.com",
+      messagingSenderId: "529559179400",
+      appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
+      measurementId:     "G-X69J831LCJ"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db   = firebase.firestore();
+    // Only admins may access this page
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = 'index.html';
+        return;
+      }
+      db.collection('roles').doc(user.uid).get().then(doc => {
+        if (!doc.exists || !doc.data().admin) {
+          alert('Access denied: Admins only');
+          window.location.href = 'home.html';
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <!-- SITE NAV -->
+    <nav>
+      <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="StudentIndex.html">Students</a></li>
+        <li><a href="instructors.html">Instructors</a></li>
+        <li><a href="flights.html">Flights</a></li>
+        <li><a href="admin.html" class="active">Admin Panel</a></li>
+      </ul>
+    </nav>
+
+    <div class="card">
+      <h2>Admin Control Panel</h2>
+      <!-- Tab buttons for different admin features -->
+      <div class="tabs">
+        <button class="tab-button active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-button" data-tab="userManagement">User Management</button>
+        <button class="tab-button" data-tab="studentManagement">Students</button>
+        <button class="tab-button" data-tab="instructorManagement">Instructors</button>
+        <button class="tab-button" data-tab="reports">Reports</button>
+      </div>
+
+      <!-- Tab contents -->
+      <div id="dashboard" class="tab-content active">
+        <p><em>Overview metrics and quick actions</em></p>
+        <!-- TODO: display counts, upcoming expirations, recent activity -->
+      </div>
+
+      <div id="userManagement" class="tab-content">
+        <p><em>Manage user roles and access</em></p>
+        <!-- TODO: list all users, assign admin/user roles, reset passwords -->
+      </div>
+
+      <div id="studentManagement" class="tab-content">
+        <p><em>Link to Student Management</em></p>
+        <a href="StudentIndex.html">Go to Students Page</a>
+      </div>
+
+      <div id="instructorManagement" class="tab-content">
+        <p><em>Link to Instructor Management</em></p>
+        <a href="instructors.html">Go to Instructors Page</a>
+      </div>
+
+      <div id="reports" class="tab-content">
+        <p><em>Generate reports</em></p>
+        <!-- TODO: upcoming renewals, flight logs summary -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tab switching logic
+    document.querySelectorAll('.tab-button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
