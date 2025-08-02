@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My App – Welcome</title>
+  <style>
+    /* Center and style the boxes */
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    #login, #welcome {
+      background: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    /* Hide the welcome section until after login */
+    #welcome { display: none; }
+    input, button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 8px;
+      box-sizing: border-box;
+    }
+    #error {
+      color: red;
+      height: 1em;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login form -->
+  <div id="login">
+    <h2>Login</h2>
+    <input id="username" type="text" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <button id="loginBtn">Log In</button>
+    <div id="error"></div>
+  </div>
+
+  <!-- Hidden until login succeeds -->
+  <div id="welcome">
+    <h1>Welcome!</h1>
+    <p>You have successfully logged in.</p>
+  </div>
+
+  <script>
+    // 1️⃣ Define allowed users here (username:password)
+    const users = {
+      "admin": "password123",
+      "user1": "pass1"
+    };
+
+    // 2️⃣ When the button is clicked, check credentials
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      const u = document.getElementById('username').value;
+      const p = document.getElementById('password').value;
+      if (users[u] === p) {
+        // Hide login, show welcome
+        document.getElementById('login').style.display = 'none';
+        document.getElementById('welcome').style.display = 'block';
+      } else {
+        // Show error message
+        document.getElementById('error').textContent = 'Invalid username or password';
+      }
+    });
+  </script>
+
+</body>
+</html>
