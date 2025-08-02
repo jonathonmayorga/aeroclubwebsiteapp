@@ -1,36 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-
-<script>
-  // 1) Your Firebase config (copy exactly from your console)
-  const firebaseConfig = {
-    apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
-    authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
-    projectId:         "aeroclubwebsiteapp",
-    storageBucket:     "aeroclubwebsiteapp.appspot.com",
-    messagingSenderId: "529559179400",
-    appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
-    measurementId:     "G-X69J831LCJ"
-  };
-  // 2) Init Firebase
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-
-  // 3) Guard: if not logged in, bounce back to login page
-  auth.onAuthStateChanged(user => {
-    if (!user) {
-      window.location.href = 'index.html';
-    }
-  });
-</script>
-
   <meta charset="UTF-8">
   <title>Manage Students</title>
+
   <style>
+    /* ─── Site Navigation ─── */
+    nav {
+      background: #fff;
+      padding: 10px 20px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 16px;
+    }
+    nav a {
+      text-decoration: none;
+      color: #0366d6;
+      font-weight: bold;
+    }
+    nav a:hover { text-decoration: underline; }
+
     /* ─── Base & Layout ─── */
     body {
       font-family: sans-serif;
@@ -65,18 +61,14 @@
     .student-card h3 {
       margin: 0 0 4px;
       font-size: 1.1em;
+      cursor: pointer;
     }
-    .student-card p {
-      margin: 0;
-      color: #555;
-    }
+    .student-card p { margin: 0; color: #555; }
     .student-card .delete-btn {
       position: absolute;
       top: 8px; right: 8px;
-      background: none;
-      border: none;
-      font-size: 1.2em;
-      color: #c00;
+      background: none; border: none;
+      font-size: 1.2em; color: #c00;
     }
 
     /* ─── Modal Overlay & Content ─── */
@@ -112,17 +104,53 @@
       box-sizing: border-box;
     }
   </style>
+
+  <!-- 1) Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script>
+    // 2) Your Firebase config
+    const firebaseConfig = {
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
+      authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
+      projectId:         "aeroclubwebsiteapp",
+      storageBucket:     "aeroclubwebsiteapp.appspot.com",
+      messagingSenderId: "529559179400",
+      appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
+      measurementId:     "G-X69J831LCJ"
+    };
+    // 3) Initialize Firebase & guard
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        // if not logged in, go back to login page
+        window.location.href = 'index.html';
+      }
+    });
+  </script>
 </head>
 <body>
   <div class="container">
+    <!-- SITE NAV -->
+    <nav>
+      <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="StudentIndex.html">Students</a></li>
+        <li><a href="instructors.html">Instructors</a></li>
+        <li><a href="flights.html">Flights</a></li>
+        <li><a href="admin.html">Admin Panel</a></li>
+      </ul>
+    </nav>
+
+    <!-- PAGE HEADER -->
     <div class="header">
       <h2>Students</h2>
       <button id="openModalBtn">+ Add Student</button>
     </div>
-    <div id="studentList">
-      <!-- JS will inject student cards here -->
-    </div>
-    <p><a href="flights.html">→ Go to Flights</a></p>
+
+    <!-- STUDENT CARD GRID -->
+    <div id="studentList"></div>
   </div>
 
   <!-- Add‐Student Modal -->
@@ -137,11 +165,11 @@
           <option value="">Select Sex</option><option>Male</option><option>Female</option>
         </select>
         <input  name="email"       type="email" placeholder="Student Email" required>
-        <input  name="phone"       type="tel"   placeholder="Student Phone Number" required>
+        <input  name="phone"       type="tel"   placeholder="Phone Number" required>
         <input  name="dob"         type="date"  placeholder="Date of Birth" required>
         <textarea name="dietary"      placeholder="Dietary Requirements"></textarea>
         <textarea name="medication"   placeholder="Medication Details"></textarea>
-        <textarea name="disabilities" placeholder="Medical / Physical Disabilities"></textarea>
+        <textarea name="disabilities" placeholder="Disabilities"></textarea>
         <textarea name="address"      placeholder="Address"></textarea>
         <button type="submit">Save Student</button>
       </form>
@@ -153,15 +181,12 @@
     <div class="modal-content">
       <button id="closeProfileBtn" class="close-btn">&times;</button>
       <h3>Student Profile</h3>
-      <div id="profileContent">
-        <!-- JS fills in full profile -->
-      </div>
+      <div id="profileContent"></div>
     </div>
   </div>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Element refs
       const openModalBtn   = document.getElementById('openModalBtn');
       const closeModalBtn  = document.getElementById('closeModalBtn');
       const studentModal   = document.getElementById('studentModal');
@@ -171,16 +196,13 @@
       const closeProfile   = document.getElementById('closeProfileBtn');
       const profileContent = document.getElementById('profileContent');
 
-      // Load or init data
       let students = JSON.parse(localStorage.getItem('students')) || [];
 
-      // Age calc
       function calculateAge(dob) {
         const diff = Date.now() - new Date(dob).getTime();
         return Math.abs(new Date(diff).getUTCFullYear() - 1970);
       }
 
-      // Render cards
       function render() {
         list.innerHTML = '';
         students.forEach((s,i) => {
@@ -196,22 +218,18 @@
         attachListeners();
       }
 
-      // Wire up card clicks & deletes
       function attachListeners() {
-        // Delete
         list.querySelectorAll('.delete-btn').forEach(btn =>
           btn.onclick = () => {
             students.splice(+btn.dataset.index, 1);
             saveAndRender();
           }
         );
-        // Show profile
         list.querySelectorAll('.name-cell').forEach(h3 =>
           h3.onclick = () => showProfile(+h3.dataset.index)
         );
       }
 
-      // Show full profile modal
       function showProfile(idx) {
         const s = students[idx];
         profileContent.innerHTML = `
@@ -222,7 +240,7 @@
           <p><strong>Phone:</strong> ${s.phone}</p>
           <p><strong>DOB:</strong> ${s.dob}</p>
           <p><strong>Age:</strong> ${s.age} years</p>
-          <p><strong>Dietary Requirements:</strong> ${s.dietary || 'N/A'}</p>
+          <p><strong>Dietary:</strong> ${s.dietary || 'N/A'}</p>
           <p><strong>Medication:</strong> ${s.medication || 'N/A'}</p>
           <p><strong>Disabilities:</strong> ${s.disabilities || 'N/A'}</p>
           <p><strong>Address:</strong> ${s.address || 'N/A'}</p>
@@ -230,20 +248,20 @@
         profileModal.classList.add('active');
       }
 
-      // Save & rerender
       function saveAndRender() {
         localStorage.setItem('students', JSON.stringify(students));
         render();
       }
 
-      // Modal open/close
       openModalBtn.onclick = () => studentModal.classList.add('active');
       closeModalBtn.onclick = () => {
-        studentModal.classList.remove('active'); form.reset();
+        studentModal.classList.remove('active');
+        form.reset();
       };
       studentModal.onclick = e => {
         if (e.target === studentModal) {
-          studentModal.classList.remove('active'); form.reset();
+          studentModal.classList.remove('active');
+          form.reset();
         }
       };
       closeProfile.onclick = () => profileModal.classList.remove('active');
@@ -253,7 +271,6 @@
         }
       };
 
-      // Handle add‐student form
       form.addEventListener('submit', e => {
         e.preventDefault();
         const data = new FormData(form);
@@ -276,7 +293,6 @@
         studentModal.classList.remove('active');
       });
 
-      // Initial
       render();
     });
   </script>
