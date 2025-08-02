@@ -9,16 +9,37 @@
   <div class="container">
     <div class="card">
       <h2>Students</h2>
-      <form id="studentForm">
-        <input name="name"        placeholder="Full Name" required>
-        <input name="dob"    type="date" placeholder="Date of Birth" required>
-        <input name="membership"  placeholder="Membership #" required>
-        <button type="submit">Add Student</button>
-      </form>
+      <button id="openModalBtn">+ Add Student</button>
       <table id="studentTable"></table>
       <p><a href="flights.html">→ Go to Flights</a></p>
     </div>
   </div>
+
+  <!-- Modal Popup -->
+  <div id="studentModal" class="modal">
+    <div class="modal-content">
+      <button class="close-btn" id="closeModalBtn">&times;</button>
+      <h3>Add Student</h3>
+      <form id="studentForm">
+        <input name="name"        placeholder="Full Name" required>
+        <input name="membership"  placeholder="Membership #" required>
+        <select name="sex" required>
+          <option value="">Select Sex</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+        <input name="email"   type="email" placeholder="Student Email" required>
+        <input name="phone"   type="tel"   placeholder="Student Phone Number" required>
+        <input name="dob"     type="date"  placeholder="Date of Birth" required>
+        <textarea name="dietary"      placeholder="Dietary Requirements"></textarea>
+        <textarea name="medication"   placeholder="Medication Details"></textarea>
+        <textarea name="disabilities" placeholder="Medical / Physical Disabilities"></textarea>
+        <textarea name="address"      placeholder="Address"></textarea>
+        <button type="submit">Save Student</button>
+      </form>
+    </div>
+  </div>
+
   <script src="js/students.js"></script>
 </body>
 </html>
