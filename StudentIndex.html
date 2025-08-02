@@ -1,6 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+<script>
+  // 1) Your Firebase config (copy exactly from your console)
+  const firebaseConfig = {
+    apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
+    authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
+    projectId:         "aeroclubwebsiteapp",
+    storageBucket:     "aeroclubwebsiteapp.appspot.com",
+    messagingSenderId: "529559179400",
+    appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
+    measurementId:     "G-X69J831LCJ"
+  };
+  // 2) Init Firebase
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  // 3) Guard: if not logged in, bounce back to login page
+  auth.onAuthStateChanged(user => {
+    if (!user) {
+      window.location.href = 'index.html';
+    }
+  });
+</script>
+
   <meta charset="UTF-8">
   <title>Manage Students</title>
   <style>
