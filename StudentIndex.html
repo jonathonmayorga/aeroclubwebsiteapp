@@ -1,1 +1,24 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manage Students</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h2>Students</h2>
+      <form id="studentForm">
+        <input name="name"        placeholder="Full Name" required>
+        <input name="dob"    type="date" placeholder="Date of Birth" required>
+        <input name="membership"  placeholder="Membership #" required>
+        <button type="submit">Add Student</button>
+      </form>
+      <table id="studentTable"></table>
+      <p><a href="flights.html">→ Go to Flights</a></p>
+    </div>
+  </div>
+  <script src="js/students.js"></script>
+</body>
+</html>
