@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>My App with Firebase & Google Login</title>
+  <title>My App with Firebase, Google Login & Roles</title>
   <style>
     body {
       font-family: sans-serif;
@@ -25,22 +25,20 @@
     }
     #error { color: red; height: 1em; margin-top: 8px; }
     #adminBtn { display: none; margin-top: 12px; }
-    /* smaller Google button styling */
     #googleLoginBtn {
-      background: #4285F4;
-      color: white;
-      font-weight: bold;
+      background: #4285F4; color: white; font-weight: bold;
     }
   </style>
 
-  <!-- Firebase compat libraries -->
+  <!-- 1) Firebase compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-  <!-- Your Firebase config (copy EXACTLY from your Console) -->
+  <!-- 2) Initialize Firebase -->
   <script>
     const firebaseConfig = {
-      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8fTOQVk",
       authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
       projectId:         "aeroclubwebsiteapp",
       storageBucket:     "aeroclubwebsiteapp.appspot.com",
@@ -50,6 +48,7 @@
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const db   = firebase.firestore();
   </script>
 </head>
 
@@ -75,18 +74,18 @@
   <!-- ADMIN PANEL -->
   <div id="adminPanel" class="card">
     <h2>Admin Panel</h2>
-    <p>This screen is only visible to <em>admin@you.com</em>.</p>
-    <p>Manage users in the Firebase console:<br>
+    <p>This screen is only visible to users with <em>role: "admin"</em> in Firestore.</p>
+    <p>Manage roles under:<br>
       <a href="https://console.firebase.google.com" target="_blank">
-        Firebase → Authentication → Users
+        Firebase → Firestore Database → roles collection
       </a>
     </p>
     <button id="backBtn">Back</button>
   </div>
 
-  <!-- App Logic -->
+  <!-- APP LOGIC -->
   <script>
-    // Elements
+    // Grab elements
     const loginDiv   = document.getElementById('login');
     const welcomeDiv = document.getElementById('welcome');
     const adminDiv   = document.getElementById('adminPanel');
@@ -100,10 +99,8 @@
     const logoutBtn  = document.getElementById('logoutBtn');
     const backBtn    = document.getElementById('backBtn');
 
-    const ADMIN_EMAIL = "admin@you.com"; // ← your admin email
-
     function show(el){ el.style.display = 'block'; }
-    function hide(el){ el.style.display = 'none';  }
+    function hide(el){ el.style.display = 'none'; }
 
     // Email/Password login
     loginBtn.addEventListener('click', () => {
@@ -119,22 +116,33 @@
         .catch(e => errorEl.textContent = e.message);
     });
 
-    // Listen for auth state changes
+    // React to auth changes & fetch role
     auth.onAuthStateChanged(user => {
-      if (user) {
-        // Signed in
-        userSpan.textContent = user.email;
-        hide(loginDiv);
-        show(welcomeDiv);
-        if (user.email === ADMIN_EMAIL) show(adminBtn);
-        else hide(adminBtn);
-      } else {
+      if (!user) {
         // Signed out
         hide(welcomeDiv);
         hide(adminDiv);
         show(loginDiv);
         errorEl.textContent = '';
+        return;
       }
+
+      // Signed in: show welcome
+      userSpan.textContent = user.email;
+      hide(loginDiv);
+      show(welcomeDiv);
+
+      // Lookup role in Firestore
+      db.collection('roles').doc(user.uid).get()
+        .then(doc => {
+          const role = doc.exists ? doc.data().role : 'user';
+          if (role === 'admin') show(adminBtn);
+          else hide(adminBtn);
+        })
+        .catch(err => {
+          console.error('Error fetching role:', err);
+          hide(adminBtn);
+        });
     });
 
     // Navigate to Admin Panel
