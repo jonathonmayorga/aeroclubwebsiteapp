@@ -3,30 +3,60 @@
 <head>
   <meta charset="UTF-8">
   <title>Home – My App</title>
+  <link rel="stylesheet" href="css/style.css">
   <style>
-    body {
-      font-family: sans-serif;
+    /* Simple nav styling */
+    nav {
       background: #fff;
+      padding: 10px 20px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    nav ul {
+      list-style: none;
+      padding: 0;
       margin: 0;
-      padding: 40px;
+      display: flex;
+      gap: 12px;
     }
-    #content {
-      max-width: 600px;
-      margin: auto;
+    nav a {
+      text-decoration: none;
+      color: #0366d6;
+      font-weight: bold;
     }
-    button {
-      padding: 8px 12px;
-      margin-top: 16px;
+    nav a:hover {
+      text-decoration: underline;
     }
   </style>
+</head>
+<body>
+  <div class="container">
+    <!-- NAVIGATION MENU -->
+    <nav>
+      <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="StudentIndex.html">Manage Students</a></li>
+        <li><a href="instructors.html">Manage Instructors</a></li>
+        <li><a href="flights.html">Flight Entries</a></li>
+        <li id="adminLink" style="display:none;"><a href="admin.html">Admin Panel</a></li>
+      </ul>
+    </nav>
 
-  <!-- Firebase SDKs (same as index.html) -->
+    <!-- MAIN CONTENT -->
+    <div id="content" class="card">
+      <h1>Welcome to Your Homepage</h1>
+      <p>You’re logged in as <strong><span id="userEmail"></span></strong>.</p>
+      <button id="logoutBtn">Log Out</button>
+    </div>
+  </div>
+
+  <!-- FIREBASE + LOGIC -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-
   <script>
-    // 1) Init Firebase (copy your config exactly)
+    // 1) Firebase init (same config as index.html)
     const firebaseConfig = {
       apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
       authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
@@ -40,35 +70,42 @@
     const auth = firebase.auth();
     const db   = firebase.firestore();
 
-    // 2) If not logged in, send back to index.html
+    // 2) Element refs
+    const userSpan  = document.getElementById('userEmail');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const adminLi   = document.getElementById('adminLink');
+
+    // Change to your actual admin email
+    const ADMIN_EMAIL = "admin@you.com";
+
+    // 3) Protect page & show menu
     auth.onAuthStateChanged(user => {
       if (!user) {
+        // not logged in → back to login
         window.location.href = 'index.html';
-      } else {
-        // If you want, you can fetch their role again and adjust the page
-        document.getElementById('userEmail').textContent = user.email;
+        return;
       }
+      // show user email
+      userSpan.textContent = user.email;
+
+      // only show Admin link if Firestore role==='admin'
+      db.collection('roles').doc(user.uid).get()
+        .then(doc => {
+          const role = doc.exists ? doc.data().role : 'user';
+          if (role === 'admin') adminLi.style.display = 'inline';
+        })
+        .catch(() => {
+          // if error, just hide admin
+          adminLi.style.display = 'none';
+        });
     });
 
-    // 3) Log out button
-    function logout(){
-      auth.signOut().then(()=> {
+    // 4) Log out
+    logoutBtn.addEventListener('click', () => {
+      auth.signOut().then(() => {
         window.location.href = 'index.html';
       });
-    }
+    });
   </script>
-</head>
-<body>
-  <div id="content">
-    <h1>Welcome to Your Homepage</h1>
-    <p>You’re logged in as <strong><span id="userEmail"></span></strong>.</p>
-
-    <!-- Example: only show Admin link if they’re an admin in Firestore -->
-    <p id="adminLink" style="display:none;">
-      <a href="admin.html">Go to Admin Panel</a>
-    </p>
-
-    <button onclick="logout()">Log Out</button>
-  </div>
 </body>
 </html>
