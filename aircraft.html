@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manage Aircraft</title>
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8fTOQVk",
+      authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
+      projectId:         "aeroclubwebsiteapp",
+      storageBucket:     "aeroclubwebsiteapp.appspot.com",
+      messagingSenderId: "529559179400",
+      appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
+      measurementId:     "G-X69J831LCJ"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db   = firebase.firestore();
+
+    // Auth guard
+    auth.onAuthStateChanged(user => {
+      if (!user) window.location.href = 'index.html';
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <!-- NAVIGATION -->
+    <nav>
+      <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="StudentIndex.html">Students</a></li>
+        <li><a href="instructors.html">Instructors</a></li>
+        <li><a href="flights.html">Flights</a></li>
+        <li><a href="aircraft.html" class="active">Aircraft</a></li>
+        <li id="adminNav"><a href="admin.html">Admin Panel</a></li>
+      </ul>
+    </nav>
+
+    <!-- HEADER -->
+    <div class="header card">
+      <h2>Aircraft</h2>
+      <button id="openModalBtn">+ Add Aircraft</button>
+    </div>
+
+    <!-- LIST -->
+    <div id="aircraftList"></div>
+  </div>
+
+  <!-- Add Aircraft Modal -->
+  <div id="aircraftModal" class="modal">
+    <div class="modal-content">
+      <button id="closeModalBtn" class="close-btn">&times;</button>
+      <h3>Add Aircraft</h3>
+      <form id="aircraftForm">
+        <input name="reg" type="text" placeholder="Registration (e.g. VH-ABC)" required>
+        <input name="cost" type="number" step="0.01" placeholder="Cost per hour ($)" required>
+        <button type="submit">Save Aircraft</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Aircraft Profile Modal -->
+  <div id="aircraftProfileModal" class="modal">
+    <div class="modal-content">
+      <button id="closeProfileBtn" class="close-btn">&times;</button>
+      <h3>Aircraft Details</h3>
+      <div id="profileContent"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const openBtn    = document.getElementById('openModalBtn');
+      const closeBtn   = document.getElementById('closeModalBtn');
+      const modal      = document.getElementById('aircraftModal');
+      const form       = document.getElementById('aircraftForm');
+      const list       = document.getElementById('aircraftList');
+      const pModal     = document.getElementById('aircraftProfileModal');
+      const closeProf  = document.getElementById('closeProfileBtn');
+      const pContent   = document.getElementById('profileContent');
+
+      // Fetch & render
+      function fetchAircraft() {
+        db.collection('aircrafts').orderBy('reg')
+          .get()
+          .then(snapshot => {
+            const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            render(items);
+          });
+      }
+
+      // Render cards
+      function render(items) {
+        list.innerHTML = '';
+        items.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'student-card';
+          card.innerHTML = `
+            <button class="delete-btn" data-id="${item.id}">&times;</button>
+            <h3 data-id="${item.id}" class="name-cell">${item.reg}</h3>
+            <p>Cost: $${item.cost.toFixed(2)}/hr</p>
+          `;
+          list.appendChild(card);
+        });
+        attachListeners(items);
+      }
+
+      // Attach listeners
+      function attachListeners(items) {
+        list.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.onclick = () => {
+            db.collection('aircrafts').doc(btn.dataset.id).delete()
+              .then(fetchAircraft);
+          };
+        });
+        list.querySelectorAll('.name-cell').forEach(h3 => {
+          h3.onclick = () => showProfile(h3.dataset.id, items);
+        });
+      }
+
+      // Show details modal
+      function showProfile(id, items) {
+        const a = items.find(x => x.id === id);
+        pContent.innerHTML = `
+          <p><strong>Registration:</strong> ${a.reg}</p>
+          <p><strong>Cost per hour:</strong> $${a.cost.toFixed(2)}/hr</p>
+        `;
+        pModal.classList.add('active');
+      }
+
+      // Modal toggles
+      openBtn.onclick    = () => modal.classList.add('active');
+      closeBtn.onclick   = () => { modal.classList.remove('active'); form.reset(); };
+      modal.onclick      = e => { if (e.target===modal) { modal.classList.remove('active'); form.reset(); }};
+      closeProf.onclick  = () => pModal.classList.remove('active');
+      pModal.onclick     = e => { if (e.target===pModal) pModal.classList.remove('active'); };
+
+      // Add aircraft
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        const data = new FormData(form);
+        db.collection('aircrafts').add({
+          reg:  data.get('reg'),
+          cost: parseFloat(data.get('cost'))
+        }).then(() => {
+          form.reset();
+          modal.classList.remove('active');
+          fetchAircraft();
+        });
+      });
+
+      // Initial load
+      fetchAircraft();
+    });
+  </script>
+</body>
+</html>
