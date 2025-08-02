@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Flight Summary</title>
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script>
+    // 1) Initialize Firebase
+    const firebaseConfig = {
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
+      authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
+      projectId:         "aeroclubwebsiteapp",
+      storageBucket:     "aeroclubwebsiteapp.appspot.com",
+      messagingSenderId: "529559179400",
+      appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
+      measurementId:     "G-X69J831LCJ"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    // 2) Ensure auth persistence
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+      .catch(err => console.error("Auth persistence error:", err));
+
+    const auth = firebase.auth();
+    const db   = firebase.firestore();
+  </script>
+</head>
+<body>
+  <div class="container">
+    <!-- NAVIGATION -->
+    <nav>
+      <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="StudentIndex.html">Students</a></li>
+        <li><a href="instructors.html">Instructors</a></li>
+        <li><a href="flights.html">Flights</a></li>
+        <li><a href="aircraft.html">Aircraft</a></li>
+        <li id="adminNav" style="display:none;"><a href="admin.html">Admin Panel</a></li>
+      </ul>
+    </nav>
+
+    <!-- REPORT CARD -->
+    <div class="card">
+      <h2>Student Flight Summary</h2>
+      <label for="studentSelect">Select Student:</label>
+      <select id="studentSelect">
+        <option value="">-- choose --</option>
+      </select>
+
+      <div id="summary" style="margin-top:20px; display:none;">
+        <h3>Flights for <span id="studentName"></span></h3>
+        <table class="card" id="summaryTable">
+          <thead>
+            <tr>
+              <th>Date</th><th>FAF#</th><th>Rego</th><th>Lesson</th>
+              <th>PIC</th><th>Hours</th><th>Cost ($)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p style="margin-top:12px;">
+          <strong>Total Cost: $<span id="totalCost">0.00</span></strong>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const studentSelect = document.getElementById('studentSelect');
+      const summaryDiv    = document.getElementById('summary');
+      const studentNameEl = document.getElementById('studentName');
+      const tbody         = document.querySelector('#summaryTable tbody');
+      const totalCostEl   = document.getElementById('totalCost');
+
+      let students = [], aircrafts = [], instructors = [];
+
+      // Load dropdown refs
+      function loadRefs() {
+        db.collection('students').orderBy('name').get().then(snap => {
+          students = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+          studentSelect.innerHTML = '<option value="">-- choose --</option>' +
+            students.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+        });
+        db.collection('instructors').orderBy('name').get().then(snap => {
+          instructors = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+        });
+        db.collection('aircrafts').orderBy('reg').get().then(snap => {
+          aircrafts = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+        });
+      }
+
+      // Render filtered flights & total cost
+      function renderFlights(flights, student) {
+        tbody.innerHTML = '';
+        let sum = 0;
+        flights.forEach(f => {
+          const tr = document.createElement('tr');
+          const ac  = aircrafts.find(a=>a.id===f.aircraft) || {};
+          const pi  = instructors.find(i=>i.id===f.pic)      || {};
+          sum += f.cost;
+          tr.innerHTML = `
+            <td>${f.date}</td>
+            <td>${f.faf}</td>
+            <td>${ac.reg || ''}</td>
+            <td>${f.lesson}</td>
+            <td>${pi.name || ''}</td>
+            <td>${f.hours.toFixed(2)}</td>
+            <td>${f.cost.toFixed(2)}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        totalCostEl.textContent = sum.toFixed(2);
+        studentNameEl.textContent = student.name;
+        summaryDiv.style.display = flights.length ? 'block' : 'none';
+      }
+
+      // When student changes
+      studentSelect.onchange = () => {
+        const sid = studentSelect.value;
+        if (!sid) {
+          summaryDiv.style.display = 'none';
+          return;
+        }
+        const student = students.find(s=>s.id===sid);
+        db.collection('flights')
+          .where('student','==', sid)
+          .orderBy('date','desc')
+          .get()
+          .then(snap => {
+            const fls = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+            renderFlights(fls, student);
+          });
+      };
+
+      // Only after auth do we init
+      auth.onAuthStateChanged(user => {
+        if (!user) {
+          window.location.href = 'index.html';
+          return;
+        }
+        // show admin link if needed
+        db.collection('roles').doc(user.uid).get().then(doc => {
+          document.getElementById('adminNav').style.display =
+            (doc.exists && doc.data().admin) ? 'inline-block' : 'none';
+        });
+        loadRefs();
+      });
+    });
+  </script>
+</body>
+</html>
