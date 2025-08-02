@@ -3,19 +3,102 @@
 <head>
   <meta charset="UTF-8">
   <title>Manage Students</title>
-  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* ─── Base & Layout ─── */
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      margin: 0; padding: 20px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: auto;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    button { cursor: pointer; }
+
+    /* ─── Card Grid ─── */
+    #studentList {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .student-card {
+      background: white;
+      border-radius: 6px;
+      padding: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    .student-card h3 {
+      margin: 0 0 4px;
+      font-size: 1.1em;
+    }
+    .student-card p {
+      margin: 0;
+      color: #555;
+    }
+    .student-card .delete-btn {
+      position: absolute;
+      top: 8px; right: 8px;
+      background: none;
+      border: none;
+      font-size: 1.2em;
+      color: #c00;
+    }
+
+    /* ─── Modal Overlay & Content ─── */
+    .modal {
+      display: none;
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.5);
+      justify-content: center; align-items: center;
+      z-index: 1000;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%; max-width: 600px;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .modal-content h3 { margin-top: 0; }
+    .close-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: none; border: none;
+      font-size: 1.4em; cursor: pointer;
+    }
+    .modal-content form input,
+    .modal-content form select,
+    .modal-content form textarea,
+    .modal-content form button {
+      width: 100%; margin-bottom: 10px; padding: 8px;
+      box-sizing: border-box;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <div class="card">
+    <div class="header">
       <h2>Students</h2>
       <button id="openModalBtn">+ Add Student</button>
-      <table id="studentTable"></table>
-      <p><a href="flights.html">→ Go to Flights</a></p>
     </div>
+    <div id="studentList">
+      <!-- JS will inject student cards here -->
+    </div>
+    <p><a href="flights.html">→ Go to Flights</a></p>
   </div>
 
-  <!-- Modal overlay -->
+  <!-- Add‐Student Modal -->
   <div id="studentModal" class="modal">
     <div class="modal-content">
       <button id="closeModalBtn" class="close-btn">&times;</button>
@@ -24,13 +107,11 @@
         <input name="name"        placeholder="Full Name" required>
         <input name="membership"  placeholder="Membership #" required>
         <select name="sex" required>
-          <option value="">Select Sex</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
+          <option value="">Select Sex</option><option>Male</option><option>Female</option>
         </select>
-        <input name="email"   type="email" placeholder="Student Email" required>
-        <input name="phone"   type="tel"   placeholder="Student Phone Number" required>
-        <input name="dob"     type="date"  placeholder="Date of Birth" required>
+        <input  name="email"       type="email" placeholder="Student Email" required>
+        <input  name="phone"       type="tel"   placeholder="Student Phone Number" required>
+        <input  name="dob"         type="date"  placeholder="Date of Birth" required>
         <textarea name="dietary"      placeholder="Dietary Requirements"></textarea>
         <textarea name="medication"   placeholder="Medication Details"></textarea>
         <textarea name="disabilities" placeholder="Medical / Physical Disabilities"></textarea>
@@ -40,6 +121,137 @@
     </div>
   </div>
 
-  <script src="js/students.js"></script>
+  <!-- Profile Modal -->
+  <div id="profileModal" class="modal">
+    <div class="modal-content">
+      <button id="closeProfileBtn" class="close-btn">&times;</button>
+      <h3>Student Profile</h3>
+      <div id="profileContent">
+        <!-- JS fills in full profile -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Element refs
+      const openModalBtn   = document.getElementById('openModalBtn');
+      const closeModalBtn  = document.getElementById('closeModalBtn');
+      const studentModal   = document.getElementById('studentModal');
+      const form           = document.getElementById('studentForm');
+      const list           = document.getElementById('studentList');
+      const profileModal   = document.getElementById('profileModal');
+      const closeProfile   = document.getElementById('closeProfileBtn');
+      const profileContent = document.getElementById('profileContent');
+
+      // Load or init data
+      let students = JSON.parse(localStorage.getItem('students')) || [];
+
+      // Age calc
+      function calculateAge(dob) {
+        const diff = Date.now() - new Date(dob).getTime();
+        return Math.abs(new Date(diff).getUTCFullYear() - 1970);
+      }
+
+      // Render cards
+      function render() {
+        list.innerHTML = '';
+        students.forEach((s,i) => {
+          const card = document.createElement('div');
+          card.className = 'student-card';
+          card.innerHTML = `
+            <button class="delete-btn" data-index="${i}">&times;</button>
+            <h3 data-index="${i}" class="name-cell">${s.name}</h3>
+            <p>${s.membership}</p>
+          `;
+          list.appendChild(card);
+        });
+        attachListeners();
+      }
+
+      // Wire up card clicks & deletes
+      function attachListeners() {
+        // Delete
+        list.querySelectorAll('.delete-btn').forEach(btn =>
+          btn.onclick = () => {
+            students.splice(+btn.dataset.index, 1);
+            saveAndRender();
+          }
+        );
+        // Show profile
+        list.querySelectorAll('.name-cell').forEach(h3 =>
+          h3.onclick = () => showProfile(+h3.dataset.index)
+        );
+      }
+
+      // Show full profile modal
+      function showProfile(idx) {
+        const s = students[idx];
+        profileContent.innerHTML = `
+          <p><strong>Name:</strong> ${s.name}</p>
+          <p><strong>Membership #:</strong> ${s.membership}</p>
+          <p><strong>Sex:</strong> ${s.sex}</p>
+          <p><strong>Email:</strong> ${s.email}</p>
+          <p><strong>Phone:</strong> ${s.phone}</p>
+          <p><strong>DOB:</strong> ${s.dob}</p>
+          <p><strong>Age:</strong> ${s.age} years</p>
+          <p><strong>Dietary Requirements:</strong> ${s.dietary || 'N/A'}</p>
+          <p><strong>Medication:</strong> ${s.medication || 'N/A'}</p>
+          <p><strong>Disabilities:</strong> ${s.disabilities || 'N/A'}</p>
+          <p><strong>Address:</strong> ${s.address || 'N/A'}</p>
+        `;
+        profileModal.classList.add('active');
+      }
+
+      // Save & rerender
+      function saveAndRender() {
+        localStorage.setItem('students', JSON.stringify(students));
+        render();
+      }
+
+      // Modal open/close
+      openModalBtn.onclick = () => studentModal.classList.add('active');
+      closeModalBtn.onclick = () => {
+        studentModal.classList.remove('active'); form.reset();
+      };
+      studentModal.onclick = e => {
+        if (e.target === studentModal) {
+          studentModal.classList.remove('active'); form.reset();
+        }
+      };
+      closeProfile.onclick = () => profileModal.classList.remove('active');
+      profileModal.onclick = e => {
+        if (e.target === profileModal) {
+          profileModal.classList.remove('active');
+        }
+      };
+
+      // Handle add‐student form
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        const data = new FormData(form);
+        const student = {
+          name:         data.get('name'),
+          membership:   data.get('membership'),
+          sex:          data.get('sex'),
+          email:        data.get('email'),
+          phone:        data.get('phone'),
+          dob:          data.get('dob'),
+          age:          calculateAge(data.get('dob')),
+          dietary:      data.get('dietary'),
+          medication:   data.get('medication'),
+          disabilities: data.get('disabilities'),
+          address:      data.get('address')
+        };
+        students.push(student);
+        saveAndRender();
+        form.reset();
+        studentModal.classList.remove('active');
+      });
+
+      // Initial
+      render();
+    });
+  </script>
 </body>
 </html>
