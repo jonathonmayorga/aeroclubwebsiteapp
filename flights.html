@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Flights</title>
+  <title>Flights</n></title>
   <link rel="stylesheet" href="css/style.css">
 
   <!-- Firebase SDKs & Init -->
@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script>
     const firebaseConfig = {
-      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8fTOQVk",
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
       authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
       projectId:         "aeroclubwebsiteapp",
       storageBucket:     "aeroclubwebsiteapp.appspot.com",
@@ -22,9 +22,15 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db   = firebase.firestore();
-    // Auth guard
+
     auth.onAuthStateChanged(user => {
       if (!user) window.location.href = 'index.html';
+      // show admin link if admin
+      db.collection('roles').doc(user.uid).get()
+        .then(doc => {
+          const isAdmin = doc.exists && doc.data().admin === true;
+          document.getElementById('adminNav').style.display = isAdmin ? 'inline-block' : 'none';
+        });
     });
   </script>
 </head>
@@ -42,14 +48,229 @@
       </ul>
     </nav>
 
-    <!-- FLIGHTS CARD -->
-    <div class="card">
+    <div class="header card">
       <h2>Flight Entries</h2>
-      <button id="addFlight">+ Add Flight</button>
-      <table id="flightsTable"></table>
+      <button id="addFlightBtn">+ Add Flight</button>
+    </div>
+
+    <table id="flightsTable" class="card">
+      <thead>
+        <tr>
+          <th>FAF Number</th>
+          <th>Date</th>
+          <th>Student</th>
+          <th>Membership#</th>
+          <th>Rego</th>
+          <th>Flight Details</th>
+          <th>PIC</th>
+          <th>VDO Start</th>
+          <th>VDO Stop</th>
+          <th>Hours</th>
+          <th>Landings</th>
+          <th>Full Stops</th>
+          <th>Cost ($)</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Add Flight Modal -->
+  <div id="flightModal" class="modal">
+    <div class="modal-content">
+      <button id="closeFlightModal" class="close-btn">&times;</button>
+      <h3>Add Flight Entry</h3>
+      <form id="flightForm">
+        <input name="faf" type="text" placeholder="FAF Number" required>
+        <input name="date" type="date" required>
+        <select name="student" required>
+          <option value="">Select Student</option>
+        </select>
+        <input name="membership" type="text" placeholder="Membership #" readonly>
+        <select name="aircraft" required>
+          <option value="">Select Aircraft</option>
+        </select>
+        <select name="lesson" required>
+          <option value="">Select Lesson Type</option>
+          <option>Effects of Controls</option>
+          <option>Straight & Level</option>
+          <option>Climbing & Descending</option>
+          <option>Turning</option>
+          <option>Stalling</option>
+          <option>Consolidation & Circuit Introduction</option>
+          <option>Circuits</option>
+          <option>Circuits: Flapless & Go Arounds</option>
+          <option>Circuits: Emergencies</option>
+          <option>Circuits: Pre Solo</option>
+          <option>Solo Circuits</option>
+          <option>Circuit Consolidation</option>
+          <option>Advanced Stalling</option>
+          <option>Forced Landings</option>
+          <option>Steep Turns</option>
+          <option>Crosswind Circuits</option>
+          <option>Pre Training Area Solo</option>
+          <option>First Training Area Solo</option>
+          <option>Short Field Take Off & Landing</option>
+          <option>Consolidation</option>
+          <option>Precautionary Search</option>
+          <option>Basic Instrument Flight</option>
+          <option>Pre Licence Flight Check</option>
+          <option>RPL Flight Test</option>
+          <option>PARO + CTR Endorsement Check</option>
+          <option>NAVEX</option>
+          <option>Private Hire</option>
+          <option>Standardisation & Proficiency check</option>
+          <option>Flight Proficiency Check</option>
+          <option>Other</option>
+        </select>
+        <select name="pic" required>
+          <option value="">Select PIC</option>
+        </select>
+        <input name="vdoStart" type="number" placeholder="VDO Start" required>
+        <input name="vdoStop" type="number" placeholder="VDO Stop" required>
+        <input name="hours" type="number" placeholder="Hours Flown" readonly>
+        <input name="landings" type="number" placeholder="Total Landings" required>
+        <input name="fullStops" type="number" placeholder="Full Stops" required>
+        <input name="cost" type="number" step="0.01" placeholder="Flight Cost ($)" required>
+        <button type="submit">Save Flight</button>
+      </form>
     </div>
   </div>
 
-  <script src="js/flights.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const addBtn    = document.getElementById('addFlightBtn');
+      const modal     = document.getElementById('flightModal');
+      const closeBtn  = document.getElementById('closeFlightModal');
+      const form      = document.getElementById('flightForm');
+      const tbody     = document.querySelector('#flightsTable tbody');
+      const studentSel= form.student;
+      const memberIn = form.membership;
+      const aircraftSel = form.aircraft;
+      const picSel    = form.pic;
+      const vdoStart  = form.vdoStart;
+      const vdoStop   = form.vdoStop;
+      const hoursIn   = form.hours;
+      const costIn    = form.cost;
+
+      let students = [];
+      let instructors = [];
+      let aircrafts = [];
+
+      // Load reference data
+      function loadRefs() {
+        db.collection('students').orderBy('name').get().then(snap => {
+          students = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          studentSel.innerHTML = '<option value="">Select Student</option>' +
+            students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        });
+        db.collection('instructors').orderBy('name').get().then(snap => {
+          instructors = snap.docs.map(d=>({id:d.id,...d.data()}));
+          picSel.innerHTML = '<option value="">Select PIC</option>' +
+            instructors.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+        });
+        db.collection('aircrafts').orderBy('reg').get().then(snap => {
+          aircrafts = snap.docs.map(d=>({id:d.id,...d.data()}));
+          aircraftSel.innerHTML = '<option value="">Select Aircraft</option>' +
+            aircrafts.map(a=>`<option value="${a.id}">${a.reg}</option>`).join('');
+        });
+      }
+
+      // Calculate hours & cost
+      function recalc() {
+        const vs = parseFloat(vdoStart.value) || 0;
+        const ve = parseFloat(vdoStop.value) || 0;
+        const hrs = Math.max(0, ve - vs);
+        hoursIn.value = hrs;
+        // find cost/hr for selected aircraft
+        const ac = aircrafts.find(a=>a.id===aircraftSel.value);
+        const costHr = ac ? ac.cost : 0;
+        const fs = parseInt(form.fullStops.value)||0;
+        const total = hrs * costHr + fs * 35;
+        costIn.value = total.toFixed(2);
+      }
+
+      // Fetch & render flights
+      function fetchFlights() {
+        db.collection('flights').orderBy('date','desc').get().then(snap=>{
+          const flights = snap.docs.map(d=>({ id:d.id, ...d.data()}));
+          renderFlights(flights);
+        });
+      }
+
+      function renderFlights(flights) {
+        tbody.innerHTML = '';
+        flights.forEach(f=>{
+          const tr = document.createElement('tr');
+          const student = students.find(s=>s.id===f.student)?.name || '';
+          const membership = students.find(s=>s.id===f.student)?.membership || '';
+          const aircraft = aircrafts.find(a=>a.id===f.aircraft)?.reg || '';
+          const pic = instructors.find(i=>i.id===f.pic)?.name || '';
+          tr.innerHTML = `
+            <td>${f.faf}</td>
+            <td>${f.date}</td>
+            <td>${student}</td>
+            <td>${membership}</td>
+            <td>${aircraft}</td>
+            <td>${f.lesson}</td>
+            <td>${pic}</td>
+            <td>${f.vdoStart}</td>
+            <td>${f.vdoStop}</td>
+            <td>${f.hours}</td>
+            <td>${f.landings}</td>
+            <td>${f.fullStops}</td>
+            <td>${f.cost}</td>
+            <td><button class="delete-btn" data-id="${f.id}">&times;</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+        // delete handlers
+        tbody.querySelectorAll('.delete-btn').forEach(btn=>{
+          btn.onclick = () => {
+            db.collection('flights').doc(btn.dataset.id).delete().then(fetchFlights);
+          };
+        });
+      }
+
+      // Modal controls
+      addBtn.onclick    = () => { modal.classList.add('active'); form.date.value = new Date().toISOString().split('T')[0]; };
+      closeBtn.onclick  = () => { modal.classList.remove('active'); form.reset(); hoursIn.value=''; costIn.value=''; };
+      modal.onclick     = e => { if(e.target===modal){ modal.classList.remove('active'); form.reset(); hoursIn.value=''; costIn.value=''; }};
+
+      // Listeners
+      studentSel.onchange = () => {
+        const s = students.find(st=>st.id===studentSel.value);
+        memberIn.value = s ? s.membership : '';
+      };
+      [vdoStart, vdoStop, form.fullStops, aircraftSel].forEach(el => el.oninput = recalc);
+
+      // Form submit
+      form.addEventListener('submit', e=>{
+        e.preventDefault();
+        const data = new FormData(form);
+        const entry = {
+          faf: data.get('faf'),
+          date: data.get('date'),
+          student: data.get('student'),
+          aircraft: data.get('aircraft'),
+          lesson: data.get('lesson'),
+          pic: data.get('pic'),
+          vdoStart: parseFloat(data.get('vdoStart')),
+          vdoStop: parseFloat(data.get('vdoStop')),
+          hours: parseFloat(data.get('hours')),
+          landings: parseInt(data.get('landings')),
+          fullStops: parseInt(data.get('fullStops')),
+          cost: parseFloat(data.get('cost'))
+        };
+        db.collection('flights').add(entry)
+          .then(()=>{ modal.classList.remove('active'); form.reset(); hoursIn.value=''; costIn.value=''; fetchFlights(); });
+      });
+
+      // Initial load
+      loadRefs();
+      setTimeout(fetchFlights, 500); // wait for refs to load
+    });
+  </script>
 </body>
 </html>
