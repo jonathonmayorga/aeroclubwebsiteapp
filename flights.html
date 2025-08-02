@@ -10,7 +10,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script>
-    // 1) Init Firebase
+    // 1) Initialize Firebase
     const firebaseConfig = {
       apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
       authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
@@ -22,9 +22,9 @@
     };
     firebase.initializeApp(firebaseConfig);
 
-    // 2) Ensure login persists across tabs
+    // 2) Force LOCAL persistence so onAuthStateChanged fires with the cached user
     firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-      .catch(err => console.error("Persistence error:", err));
+      .catch(err => console.error("Auth persistence error:", err));
 
     const auth = firebase.auth();
     const db   = firebase.firestore();
@@ -52,20 +52,10 @@
     <table id="flightsTable" class="card">
       <thead>
         <tr>
-          <th>FAF Number</th>
-          <th>Date</th>
-          <th>Student</th>
-          <th>Membership#</th>
-          <th>Rego</th>
-          <th>Flight Details</th>
-          <th>PIC</th>
-          <th>VDO Start</th>
-          <th>VDO Stop</th>
-          <th>Hours</th>
-          <th>Landings</th>
-          <th>Full Stops</th>
-          <th>Cost ($)</th>
-          <th>Action</th>
+          <th>FAF Number</th><th>Date</th><th>Student</th><th>Membership#</th>
+          <th>Rego</th><th>Flight Details</th><th>PIC</th>
+          <th>VDO Start</th><th>VDO Stop</th><th>Hours</th>
+          <th>Landings</th><th>Full Stops</th><th>Cost ($)</th><th>Action</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -89,11 +79,12 @@
         </select>
         <select name="lesson"    required>
           <option value="">Select Lesson Type</option>
-          <!-- …all lesson options… -->
+          <!-- all lesson options here -->
         </select>
         <select name="pic" required>
           <option value="">Select PIC</option>
         </select>
+        <!-- DECIMAL support -->
         <input name="vdoStart" type="number" step="0.01" placeholder="VDO Start" required>
         <input name="vdoStop"  type="number" step="0.01" placeholder="VDO Stop"  required>
         <input name="hours"    type="number" step="0.01" placeholder="Hours Flown" readonly>
@@ -107,22 +98,22 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Element refs
-      const addBtn     = document.getElementById('addFlightBtn');
-      const modal      = document.getElementById('flightModal');
-      const closeBtn   = document.getElementById('closeFlightModal');
-      const form       = document.getElementById('flightForm');
-      const tbody      = document.querySelector('#flightsTable tbody');
-      const studentSel = form.student;
-      const memberIn   = form.membership;
-      const aircraftSel= form.aircraft;
-      const picSel     = form.pic;
-      const vdoStart   = form.vdoStart;
-      const vdoStop    = form.vdoStop;
-      const hoursIn    = form.hours;
-      const costIn     = form.cost;
+      // DOM refs
+      const addBtn      = document.getElementById('addFlightBtn');
+      const modal       = document.getElementById('flightModal');
+      const closeBtn    = document.getElementById('closeFlightModal');
+      const form        = document.getElementById('flightForm');
+      const tbody       = document.querySelector('#flightsTable tbody');
+      const studentSel  = form.student;
+      const memberIn    = form.membership;
+      const aircraftSel = form.aircraft;
+      const picSel      = form.pic;
+      const vdoStart    = form.vdoStart;
+      const vdoStop     = form.vdoStop;
+      const hoursIn     = form.hours;
+      const costIn      = form.cost;
 
-      let students=[], instructors=[], aircrafts=[];
+      let students = [], instructors = [], aircrafts = [];
 
       // Populate dropdowns
       function loadRefs() {
@@ -143,7 +134,7 @@
         });
       }
 
-      // Calculate & round
+      // Calculate & round hours/cost
       function recalc() {
         const vs = parseFloat(vdoStart.value)||0;
         const ve = parseFloat(vdoStop.value)||0;
@@ -151,13 +142,13 @@
         hoursIn.value = hrs.toFixed(2);
 
         const ac = aircrafts.find(a=>a.id===aircraftSel.value);
-        const rate = ac? ac.cost : 0;
+        const rate = ac ? ac.cost : 0;
         const fs   = parseInt(form.fullStops.value)||0;
-        const tot  = hrs * rate + fs*35;
+        const tot  = hrs * rate + fs * 35;
         costIn.value = tot.toFixed(2);
       }
 
-      // Render flights
+      // Render flight list
       function renderFlights(list) {
         tbody.innerHTML = '';
         list.forEach(f => {
@@ -183,21 +174,21 @@
           `;
           tbody.appendChild(tr);
         });
-        tbody.querySelectorAll('.delete-btn').forEach(b=>{
-          b.onclick = ()=> db.collection('flights').doc(b.dataset.id)
-                       .delete().then(() => fetchFlights());
+        tbody.querySelectorAll('.delete-btn').forEach(b => {
+          b.onclick = () => db.collection('flights').doc(b.dataset.id)
+                            .delete().then(fetchFlights);
         });
       }
 
-      // Fetch flights from Firestore
+      // Fetch flights
       function fetchFlights() {
-        db.collection('flights').orderBy('date','desc').get().then(snap=>{
+        db.collection('flights').orderBy('date','desc').get().then(snap => {
           const arr = snap.docs.map(d=>({id:d.id,...d.data()}));
           renderFlights(arr);
         });
       }
 
-      // Modal open/close
+      // Modal controls
       addBtn.onclick = () => {
         modal.classList.add('active');
         form.date.value = new Date().toISOString().split('T')[0];
@@ -207,23 +198,21 @@
         form.reset(); hoursIn.value=''; costIn.value='';
       };
       modal.onclick = e => {
-        if (e.target===modal) {
+        if (e.target === modal) {
           modal.classList.remove('active');
           form.reset(); hoursIn.value=''; costIn.value='';
         }
       };
 
-      // Fill membership and recalc on change
-      studentSel.onchange = ()=> {
+      // Auto-fill membership & recalc
+      studentSel.onchange = () => {
         const s = students.find(s=>s.id===studentSel.value);
         memberIn.value = s? s.membership : '';
       };
-      [vdoStart,vdoStop,form.fullStops,aircraftSel].forEach(el=>{
-        el.oninput = recalc;
-      });
+      [vdoStart, vdoStop, form.fullStops, aircraftSel].forEach(el=> el.oninput = recalc);
 
-      // Handle form submit
-      form.addEventListener('submit', e=>{
+      // Handle save
+      form.addEventListener('submit', e => {
         e.preventDefault();
         const d = new FormData(form);
         const entry = {
@@ -241,26 +230,25 @@
           cost:      parseFloat(d.get('cost'))
         };
         db.collection('flights').add(entry)
-          .then(()=> {
+          .then(() => {
             form.reset(); hoursIn.value=''; costIn.value='';
             modal.classList.remove('active');
             fetchFlights();
           })
-          .catch(err => console.error("Write error:", err));
+          .catch(err => console.error("Save error:", err));
       });
 
-      // Only after auth do we load data
+      // Only after auth do we kick off
       auth.onAuthStateChanged(user => {
         if (!user) {
           window.location.href = 'index.html';
           return;
         }
-        // Show admin link if appropriate
-        db.collection('roles').doc(user.uid).get().then(doc=>{
+        // show admin link?
+        db.collection('roles').doc(user.uid).get().then(doc => {
           document.getElementById('adminNav').style.display =
             (doc.exists && doc.data().admin) ? 'inline-block' : 'none';
         });
-        // Now that we're signed in, load everything
         loadRefs();
         fetchFlights();
       });
