@@ -3,113 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>Manage Students</title>
+  <link rel="stylesheet" href="css/style.css">
 
-  <style>
-    /* ─── Site Navigation ─── */
-    nav {
-      background: #fff;
-      padding: 10px 20px;
-      border-radius: 5px;
-      margin-bottom: 20px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    }
-    nav ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      gap: 16px;
-    }
-    nav a {
-      text-decoration: none;
-      color: #0366d6;
-      font-weight: bold;
-    }
-    nav a:hover { text-decoration: underline; }
-
-    /* ─── Base & Layout ─── */
-    body {
-      font-family: sans-serif;
-      background: #f0f0f0;
-      margin: 0; padding: 20px;
-    }
-    .container {
-      max-width: 1000px;
-      margin: auto;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    button { cursor: pointer; }
-
-    /* ─── Card Grid ─── */
-    #studentList {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 16px;
-    }
-    .student-card {
-      background: white;
-      border-radius: 6px;
-      padding: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-      position: relative;
-    }
-    .student-card h3 {
-      margin: 0 0 4px;
-      font-size: 1.1em;
-      cursor: pointer;
-    }
-    .student-card p { margin: 0; color: #555; }
-    .student-card .delete-btn {
-      position: absolute;
-      top: 8px; right: 8px;
-      background: none; border: none;
-      font-size: 1.2em; color: #c00;
-    }
-
-    /* ─── Modal Overlay & Content ─── */
-    .modal {
-      display: none;
-      position: fixed; top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.5);
-      justify-content: center; align-items: center;
-      z-index: 1000;
-    }
-    .modal.active { display: flex; }
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      width: 90%; max-width: 600px;
-      position: relative;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    }
-    .modal-content h3 { margin-top: 0; }
-    .close-btn {
-      position: absolute;
-      top: 10px; right: 10px;
-      background: none; border: none;
-      font-size: 1.4em; cursor: pointer;
-    }
-    .modal-content form input,
-    .modal-content form select,
-    .modal-content form textarea,
-    .modal-content form button {
-      width: 100%; margin-bottom: 10px; padding: 8px;
-      box-sizing: border-box;
-    }
-  </style>
-
-  <!-- 1) Firebase SDKs -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script>
-    // 2) Your Firebase config
+    // Your Firebase config
     const firebaseConfig = {
       apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
       authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
@@ -119,20 +20,21 @@
       appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
       measurementId:     "G-X69J831LCJ"
     };
-    // 3) Initialize Firebase & guard
+    // Initialize
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const db   = firebase.firestore();
+
+    // Redirect if not logged in
     auth.onAuthStateChanged(user => {
-      if (!user) {
-        // if not logged in, go back to login page
-        window.location.href = 'index.html';
-      }
+      if (!user) window.location.href = 'index.html';
     });
   </script>
 </head>
 <body>
   <div class="container">
-    <!-- SITE NAV -->
+
+    <!-- NAVIGATION -->
     <nav>
       <ul>
         <li><a href="home.html">Home</a></li>
@@ -143,17 +45,17 @@
       </ul>
     </nav>
 
-    <!-- PAGE HEADER -->
-    <div class="header">
+    <!-- HEADER -->
+    <div class="header card">
       <h2>Students</h2>
       <button id="openModalBtn">+ Add Student</button>
     </div>
 
-    <!-- STUDENT CARD GRID -->
+    <!-- STUDENT GRID -->
     <div id="studentList"></div>
   </div>
 
-  <!-- Add‐Student Modal -->
+  <!-- Add Student Modal -->
   <div id="studentModal" class="modal">
     <div class="modal-content">
       <button id="closeModalBtn" class="close-btn">&times;</button>
@@ -187,52 +89,70 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const openModalBtn   = document.getElementById('openModalBtn');
-      const closeModalBtn  = document.getElementById('closeModalBtn');
-      const studentModal   = document.getElementById('studentModal');
-      const form           = document.getElementById('studentForm');
-      const list           = document.getElementById('studentList');
-      const profileModal   = document.getElementById('profileModal');
-      const closeProfile   = document.getElementById('closeProfileBtn');
-      const profileContent = document.getElementById('profileContent');
+      const openBtn    = document.getElementById('openModalBtn');
+      const closeBtn   = document.getElementById('closeModalBtn');
+      const modal      = document.getElementById('studentModal');
+      const form       = document.getElementById('studentForm');
+      const list       = document.getElementById('studentList');
+      const pModal     = document.getElementById('profileModal');
+      const closeProf  = document.getElementById('closeProfileBtn');
+      const pContent   = document.getElementById('profileContent');
 
-      let students = JSON.parse(localStorage.getItem('students')) || [];
-
-      function calculateAge(dob) {
-        const diff = Date.now() - new Date(dob).getTime();
-        return Math.abs(new Date(diff).getUTCFullYear() - 1970);
+      // Fetch & render students from Firestore
+      function fetchStudents() {
+        db.collection('students')
+          .orderBy('name')
+          .get()
+          .then(snapshot => {
+            const students = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+            render(students);
+          });
       }
 
-      function render() {
+      // Calculate age
+      function calculateAge(dob) {
+        const diffMs = Date.now() - new Date(dob).getTime();
+        return Math.abs(new Date(diffMs).getUTCFullYear() - 1970);
+      }
+
+      // Render grid
+      function render(students) {
         list.innerHTML = '';
-        students.forEach((s,i) => {
+        students.forEach((s,idx) => {
           const card = document.createElement('div');
           card.className = 'student-card';
           card.innerHTML = `
-            <button class="delete-btn" data-index="${i}">&times;</button>
-            <h3 data-index="${i}" class="name-cell">${s.name}</h3>
+            <button class="delete-btn" data-id="${s.id}">&times;</button>
+            <h3 data-id="${s.id}" class="name-cell">${s.name}</h3>
             <p>${s.membership}</p>
           `;
           list.appendChild(card);
         });
-        attachListeners();
+        attachListeners(students);
       }
 
-      function attachListeners() {
-        list.querySelectorAll('.delete-btn').forEach(btn =>
+      // Wire up click handlers
+      function attachListeners(students) {
+        // Delete
+        list.querySelectorAll('.delete-btn').forEach(btn => {
           btn.onclick = () => {
-            students.splice(+btn.dataset.index, 1);
-            saveAndRender();
-          }
-        );
-        list.querySelectorAll('.name-cell').forEach(h3 =>
-          h3.onclick = () => showProfile(+h3.dataset.index)
-        );
+            db.collection('students').doc(btn.dataset.id)
+              .delete().then(fetchStudents);
+          };
+        });
+        // Profile
+        list.querySelectorAll('.name-cell').forEach(h3 => {
+          h3.onclick = () => showProfile(h3.dataset.id, students);
+        });
       }
 
-      function showProfile(idx) {
-        const s = students[idx];
-        profileContent.innerHTML = `
+      // Show profile
+      function showProfile(id, students) {
+        const s = students.find(x => x.id === id);
+        pContent.innerHTML = `
           <p><strong>Name:</strong> ${s.name}</p>
           <p><strong>Membership #:</strong> ${s.membership}</p>
           <p><strong>Sex:</strong> ${s.sex}</p>
@@ -245,32 +165,17 @@
           <p><strong>Disabilities:</strong> ${s.disabilities || 'N/A'}</p>
           <p><strong>Address:</strong> ${s.address || 'N/A'}</p>
         `;
-        profileModal.classList.add('active');
+        pModal.classList.add('active');
       }
 
-      function saveAndRender() {
-        localStorage.setItem('students', JSON.stringify(students));
-        render();
-      }
+      // Modal controls
+      openBtn.onclick = () => modal.classList.add('active');
+      closeBtn.onclick = () => { modal.classList.remove('active'); form.reset(); };
+      modal.onclick = e => { if (e.target===modal) { modal.classList.remove('active'); form.reset(); } };
+      closeProf.onclick = () => pModal.classList.remove('active');
+      pModal.onclick = e => { if (e.target===pModal) pModal.classList.remove('active'); };
 
-      openModalBtn.onclick = () => studentModal.classList.add('active');
-      closeModalBtn.onclick = () => {
-        studentModal.classList.remove('active');
-        form.reset();
-      };
-      studentModal.onclick = e => {
-        if (e.target === studentModal) {
-          studentModal.classList.remove('active');
-          form.reset();
-        }
-      };
-      closeProfile.onclick = () => profileModal.classList.remove('active');
-      profileModal.onclick = e => {
-        if (e.target === profileModal) {
-          profileModal.classList.remove('active');
-        }
-      };
-
+      // Add student
       form.addEventListener('submit', e => {
         e.preventDefault();
         const data = new FormData(form);
@@ -287,13 +192,17 @@
           disabilities: data.get('disabilities'),
           address:      data.get('address')
         };
-        students.push(student);
-        saveAndRender();
-        form.reset();
-        studentModal.classList.remove('active');
+        db.collection('students')
+          .add(student)
+          .then(() => {
+            form.reset();
+            modal.classList.remove('active');
+            fetchStudents();
+          });
       });
 
-      render();
+      // Initial load
+      fetchStudents();
     });
   </script>
 </body>
