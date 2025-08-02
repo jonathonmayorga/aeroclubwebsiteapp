@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>My App – Welcome</title>
+  <title>My App – Welcome & Admin</title>
   <style>
     body {
       font-family: sans-serif;
@@ -20,7 +20,6 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       width: 320px;
     }
-    /* hide sections by default */
     #welcome, #adminPanel { display: none; }
     input, select, button {
       width: 100%;
@@ -29,14 +28,14 @@
       box-sizing: border-box;
     }
     #error { color: red; height: 1em; margin-top: 8px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
     th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
-    .action-btn { width: auto; padding: 4px 8px; margin-right: 4px; }
+    .action-btn { padding: 4px 8px; margin-right: 4px; }
   </style>
 </head>
 <body>
 
-  <!-- LOGIN -->
+  <!-- LOGIN CARD -->
   <div id="login" class="card">
     <h2>Login</h2>
     <input id="username" type="text" placeholder="Username">
@@ -45,7 +44,7 @@
     <div id="error"></div>
   </div>
 
-  <!-- WELCOME -->
+  <!-- WELCOME CARD -->
   <div id="welcome" class="card">
     <h2>Welcome!</h2>
     <p>You’re logged in as <strong><span id="currentUser"></span></strong> (<span id="currentRole"></span>).</p>
@@ -56,16 +55,10 @@
   <!-- ADMIN PANEL -->
   <div id="adminPanel" class="card">
     <h2>Admin Panel</h2>
-
-    <!-- User List -->
     <table>
-      <thead>
-        <tr><th>Username</th><th>Role</th><th>Actions</th></tr>
-      </thead>
+      <thead><tr><th>User</th><th>Role</th><th>Actions</th></tr></thead>
       <tbody id="userTable"></tbody>
     </table>
-
-    <!-- Add / Edit Form -->
     <h3 id="formTitle">Add User</h3>
     <input id="newUsername" placeholder="Username">
     <input id="newPassword" type="password" placeholder="Password">
@@ -78,125 +71,105 @@
   </div>
 
   <script>
-    // 1️⃣ Default users
+    //–– 1) Define & load users ––
     const defaultUsers = {
       admin: { password: 'password123', role: 'admin' },
       user1: { password: 'pass1', role: 'user' }
     };
-    // Load from localStorage, or fall back to default
     let users = JSON.parse(localStorage.getItem('users')) || defaultUsers;
     let currentUser = null;
 
-    // Utility: persist users
     function saveUsers() {
       localStorage.setItem('users', JSON.stringify(users));
     }
 
-    // Show/hide helpers
-    function show(id) { document.getElementById(id).style.display = 'block'; }
-    function hide(id) { document.getElementById(id).style.display = 'none'; }
+    function show(id){ document.getElementById(id).style.display='block' }
+    function hide(id){ document.getElementById(id).style.display='none' }
 
-    // 2️⃣ LOGIN logic
+    //–– 2) Login logic ––
     document.getElementById('loginBtn').onclick = () => {
       const u = document.getElementById('username').value;
       const p = document.getElementById('password').value;
       if (users[u] && users[u].password === p) {
         currentUser = u;
-        // show welcome
         document.getElementById('currentUser').textContent = u;
         document.getElementById('currentRole').textContent = users[u].role;
-        hide('login');
-        show('welcome');
-        // only show admin button if role is admin
-        if (users[u].role === 'admin') show('adminBtn');
+        hide('login'); show('welcome');
+        // only admins get the Admin button
+        if (users[u].role==='admin') show('adminBtn');
         else hide('adminBtn');
       } else {
         document.getElementById('error').textContent = 'Invalid credentials';
       }
     };
 
-    // Log out
+    //–– Logout ––
     document.getElementById('logoutBtn').onclick = () => {
       currentUser = null;
       hide('welcome'); hide('adminPanel');
       show('login');
       document.getElementById('error').textContent = '';
-    };
+    }
 
-    // 3️⃣ ADMIN BUTTON
+    //–– Admin nav ––
     document.getElementById('adminBtn').onclick = () => {
       populateUserTable();
-      hide('welcome');
-      show('adminPanel');
-    };
+      hide('welcome'); show('adminPanel');
+    }
     document.getElementById('backBtn').onclick = () => {
-      hide('adminPanel');
-      show('welcome');
-    };
+      hide('adminPanel'); show('welcome');
+    }
 
-    // 4️⃣ Populate user list
+    //–– Populate table ––
     function populateUserTable() {
       const tbody = document.getElementById('userTable');
       tbody.innerHTML = '';
-      Object.keys(users).forEach(username => {
-        const { role } = users[username];
+      Object.keys(users).forEach(u => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${username}</td>
-          <td>${role}</td>
+          <td>${u}</td>
+          <td>${users[u].role}</td>
           <td>
-            <button class="action-btn" onclick="editUser('${username}')">Edit</button>
-            <button class="action-btn" onclick="deleteUser('${username}')">Delete</button>
+            <button class="action-btn" onclick="editUser('${u}')">✎</button>
+            <button class="action-btn" onclick="deleteUser('${u}')">🗑</button>
           </td>`;
         tbody.appendChild(tr);
       });
     }
 
-    // 5️⃣ Add / Edit form
-    let editMode = false;
-    let userToEdit = null;
-
+    //–– Add/Edit form ––
+    let editMode=false, userToEdit=null;
     document.getElementById('saveUserBtn').onclick = () => {
       const u = document.getElementById('newUsername').value.trim();
       const p = document.getElementById('newPassword').value;
       const r = document.getElementById('newRole').value;
-      if (!u || !p) return alert('Username & password required');
-
-      if (editMode && userToEdit) {
-        // rename if changed
-        if (u !== userToEdit) {
-          delete users[userToEdit];
-        }
+      if (!u||!p) return alert('Username & password required');
+      if (editMode && userToEdit && u!==userToEdit) {
+        delete users[userToEdit];
       }
-      // set or overwrite
-      users[u] = { password: p, role: r };
-      saveUsers();
-      resetForm();
-      populateUserTable();
-    };
+      users[u] = { password:p, role:r };
+      saveUsers(); resetForm(); populateUserTable();
+    }
 
-    function editUser(u) {
-      editMode = true;
-      userToEdit = u;
+    window.editUser = u => {
+      editMode=true; userToEdit=u;
       document.getElementById('formTitle').textContent = `Edit “${u}”`;
       document.getElementById('newUsername').value = u;
       document.getElementById('newPassword').value = users[u].password;
       document.getElementById('newRole').value = users[u].role;
     }
 
-    function deleteUser(u) {
-      if (u === currentUser) return alert("Can't delete yourself!");
-      delete users[u];
-      saveUsers();
-      populateUserTable();
+    window.deleteUser = u => {
+      if (u===currentUser) return alert("Can't delete yourself!");
+      delete users[u]; saveUsers(); populateUserTable();
     }
 
     function resetForm() {
-      editMode = false; userToEdit = null;
-      document.getElementById('formTitle').textContent = 'Add User';
-      document.getElementById('newUsername').value = '';
-      document.getElementById('newPassword').value = '';
-      document.getElementById('newRole').value = 'user';
+      editMode=false; userToEdit=null;
+      document.getElementById('formTitle').textContent='Add User';
+      document.getElementById('newUsername').value='';
+      document.getElementById('newPassword').value='';
+      document.getElementById('newRole').value='user';
     }
   </script>
 </body>
