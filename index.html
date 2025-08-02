@@ -2,175 +2,57 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>My App – Welcome & Admin</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #f0f0f0;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 5px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      width: 320px;
-    }
-    #welcome, #adminPanel { display: none; }
-    input, select, button {
-      width: 100%;
-      padding: 8px;
-      margin-top: 8px;
-      box-sizing: border-box;
-    }
-    #error { color: red; height: 1em; margin-top: 8px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
-    .action-btn { padding: 4px 8px; margin-right: 4px; }
-  </style>
+  <title>My App</title>
+
+  <!-- your existing CSS… -->
+
+  <!-- ← Paste the Firebase SDK snippet here: -->
+  <script type="module">
+    // Import the functions you need from the SDKs
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey:           "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8fTOQVk",
+      authDomain:       "aeroclubwebsiteapp.firebaseapp.com",
+      projectId:        "aeroclubwebsiteapp",
+      storageBucket:    "aeroclubwebsiteapp.firebasestorage.app",
+      messagingSenderId:"529559179400",
+      appId:            "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
+      measurementId:    "G-X69J831LCJ"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Now wire up your login/logout logic
+    // (Assuming you have elements with IDs: username, password, loginBtn, logoutBtn, error, etc.)
+    loginBtn.addEventListener('click', () => {
+      const email = username.value;
+      const pass  = password.value;
+      signInWithEmailAndPassword(auth, email, pass)
+        .catch(e => error.textContent = e.message);
+    });
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        // User is signed in—show your welcome/admin UI
+      } else {
+        // User is signed out—show login form
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      signOut(auth);
+    });
+  </script>
+
 </head>
 <body>
 
-  <!-- LOGIN CARD -->
-  <div id="login" class="card">
-    <h2>Login</h2>
-    <input id="username" type="text" placeholder="Username">
-    <input id="password" type="password" placeholder="Password">
-    <button id="loginBtn">Log In</button>
-    <div id="error"></div>
-  </div>
+  <!-- your existing HTML: login card, welcome card, admin panel… -->
 
-  <!-- WELCOME CARD -->
-  <div id="welcome" class="card">
-    <h2>Welcome!</h2>
-    <p>You’re logged in as <strong><span id="currentUser"></span></strong> (<span id="currentRole"></span>).</p>
-    <button id="adminBtn">Go to Admin Panel</button>
-    <button id="logoutBtn">Log Out</button>
-  </div>
-
-  <!-- ADMIN PANEL -->
-  <div id="adminPanel" class="card">
-    <h2>Admin Panel</h2>
-    <table>
-      <thead><tr><th>User</th><th>Role</th><th>Actions</th></tr></thead>
-      <tbody id="userTable"></tbody>
-    </table>
-    <h3 id="formTitle">Add User</h3>
-    <input id="newUsername" placeholder="Username">
-    <input id="newPassword" type="password" placeholder="Password">
-    <select id="newRole">
-      <option value="admin">Admin</option>
-      <option value="user">User</option>
-    </select>
-    <button id="saveUserBtn">Save</button>
-    <button id="backBtn">Back</button>
-  </div>
-
-  <script>
-    //–– 1) Define & load users ––
-    const defaultUsers = {
-      admin: { password: 'password123', role: 'admin' },
-      user1: { password: 'pass1', role: 'user' }
-    };
-    let users = JSON.parse(localStorage.getItem('users')) || defaultUsers;
-    let currentUser = null;
-
-    function saveUsers() {
-      localStorage.setItem('users', JSON.stringify(users));
-    }
-
-    function show(id){ document.getElementById(id).style.display='block' }
-    function hide(id){ document.getElementById(id).style.display='none' }
-
-    //–– 2) Login logic ––
-    document.getElementById('loginBtn').onclick = () => {
-      const u = document.getElementById('username').value;
-      const p = document.getElementById('password').value;
-      if (users[u] && users[u].password === p) {
-        currentUser = u;
-        document.getElementById('currentUser').textContent = u;
-        document.getElementById('currentRole').textContent = users[u].role;
-        hide('login'); show('welcome');
-        // only admins get the Admin button
-        if (users[u].role==='admin') show('adminBtn');
-        else hide('adminBtn');
-      } else {
-        document.getElementById('error').textContent = 'Invalid credentials';
-      }
-    };
-
-    //–– Logout ––
-    document.getElementById('logoutBtn').onclick = () => {
-      currentUser = null;
-      hide('welcome'); hide('adminPanel');
-      show('login');
-      document.getElementById('error').textContent = '';
-    }
-
-    //–– Admin nav ––
-    document.getElementById('adminBtn').onclick = () => {
-      populateUserTable();
-      hide('welcome'); show('adminPanel');
-    }
-    document.getElementById('backBtn').onclick = () => {
-      hide('adminPanel'); show('welcome');
-    }
-
-    //–– Populate table ––
-    function populateUserTable() {
-      const tbody = document.getElementById('userTable');
-      tbody.innerHTML = '';
-      Object.keys(users).forEach(u => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${u}</td>
-          <td>${users[u].role}</td>
-          <td>
-            <button class="action-btn" onclick="editUser('${u}')">✎</button>
-            <button class="action-btn" onclick="deleteUser('${u}')">🗑</button>
-          </td>`;
-        tbody.appendChild(tr);
-      });
-    }
-
-    //–– Add/Edit form ––
-    let editMode=false, userToEdit=null;
-    document.getElementById('saveUserBtn').onclick = () => {
-      const u = document.getElementById('newUsername').value.trim();
-      const p = document.getElementById('newPassword').value;
-      const r = document.getElementById('newRole').value;
-      if (!u||!p) return alert('Username & password required');
-      if (editMode && userToEdit && u!==userToEdit) {
-        delete users[userToEdit];
-      }
-      users[u] = { password:p, role:r };
-      saveUsers(); resetForm(); populateUserTable();
-    }
-
-    window.editUser = u => {
-      editMode=true; userToEdit=u;
-      document.getElementById('formTitle').textContent = `Edit “${u}”`;
-      document.getElementById('newUsername').value = u;
-      document.getElementById('newPassword').value = users[u].password;
-      document.getElementById('newRole').value = users[u].role;
-    }
-
-    window.deleteUser = u => {
-      if (u===currentUser) return alert("Can't delete yourself!");
-      delete users[u]; saveUsers(); populateUserTable();
-    }
-
-    function resetForm() {
-      editMode=false; userToEdit=null;
-      document.getElementById('formTitle').textContent='Add User';
-      document.getElementById('newUsername').value='';
-      document.getElementById('newPassword').value='';
-      document.getElementById('newRole').value='user';
-    }
-  </script>
 </body>
 </html>
