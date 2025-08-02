@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>My App with Firebase Auth</title>
+  <title>My App with Firebase & Google Login</title>
   <style>
     body {
       font-family: sans-serif;
@@ -25,24 +25,29 @@
     }
     #error { color: red; height: 1em; margin-top: 8px; }
     #adminBtn { display: none; margin-top: 12px; }
+    /* smaller Google button styling */
+    #googleLoginBtn {
+      background: #4285F4;
+      color: white;
+      font-weight: bold;
+    }
   </style>
 
-  <!-- 1) Firebase compat libraries -->
+  <!-- Firebase compat libraries -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 
-  <!-- 2) Your Firebase config: copy EXACTLY from Firebase Console → Project Settings → CDN → Config -->
+  <!-- Your Firebase config (copy EXACTLY from your Console) -->
   <script>
     const firebaseConfig = {
-      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8fTOQVk",
       authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
       projectId:         "aeroclubwebsiteapp",
-      storageBucket:     "aeroclubwebsiteapp.appspot.com",     // ← note the “.appspot.com”
+      storageBucket:     "aeroclubwebsiteapp.appspot.com",
       messagingSenderId: "529559179400",
       appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
       measurementId:     "G-X69J831LCJ"
     };
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
   </script>
@@ -55,6 +60,7 @@
     <input id="email"    type="email"    placeholder="Email">
     <input id="password" type="password" placeholder="Password">
     <button id="loginBtn">Log In</button>
+    <button id="googleLoginBtn">Sign in with Google</button>
     <div id="error"></div>
   </div>
 
@@ -66,11 +72,11 @@
     <button id="logoutBtn">Log Out</button>
   </div>
 
-  <!-- ADMIN PANEL (visible only to your admin email) -->
+  <!-- ADMIN PANEL -->
   <div id="adminPanel" class="card">
     <h2>Admin Panel</h2>
-    <p>This screen is only visible to <em>admin@you.com</em> (change in code below).</p>
-    <p>To manage users, go to the Firebase console:<br>
+    <p>This screen is only visible to <em>admin@you.com</em>.</p>
+    <p>Manage users in the Firebase console:<br>
       <a href="https://console.firebase.google.com" target="_blank">
         Firebase → Authentication → Users
       </a>
@@ -78,7 +84,7 @@
     <button id="backBtn">Back</button>
   </div>
 
-  <!-- 3) App logic -->
+  <!-- App Logic -->
   <script>
     // Elements
     const loginDiv   = document.getElementById('login');
@@ -87,36 +93,43 @@
     const emailEl    = document.getElementById('email');
     const passEl     = document.getElementById('password');
     const loginBtn   = document.getElementById('loginBtn');
+    const googleBtn  = document.getElementById('googleLoginBtn');
     const errorEl    = document.getElementById('error');
     const userSpan   = document.getElementById('currentUser');
     const adminBtn   = document.getElementById('adminBtn');
     const logoutBtn  = document.getElementById('logoutBtn');
     const backBtn    = document.getElementById('backBtn');
 
-    const ADMIN_EMAIL = "admin@you.com"; // ← change to your admin account
+    const ADMIN_EMAIL = "admin@you.com"; // ← your admin email
 
     function show(el){ el.style.display = 'block'; }
     function hide(el){ el.style.display = 'none';  }
 
-    // Log in
+    // Email/Password login
     loginBtn.addEventListener('click', () => {
       errorEl.textContent = '';
       auth.signInWithEmailAndPassword(emailEl.value, passEl.value)
         .catch(e => errorEl.textContent = e.message);
     });
 
-    // React to auth state
+    // Google login
+    googleBtn.addEventListener('click', () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .catch(e => errorEl.textContent = e.message);
+    });
+
+    // Listen for auth state changes
     auth.onAuthStateChanged(user => {
       if (user) {
-        // signed in
+        // Signed in
         userSpan.textContent = user.email;
         hide(loginDiv);
         show(welcomeDiv);
-        // only show admin button for your ADMIN_EMAIL
         if (user.email === ADMIN_EMAIL) show(adminBtn);
         else hide(adminBtn);
       } else {
-        // signed out
+        // Signed out
         hide(welcomeDiv);
         hide(adminDiv);
         show(loginDiv);
@@ -124,7 +137,7 @@
       }
     });
 
-    // Navigation
+    // Navigate to Admin Panel
     adminBtn.addEventListener('click', () => {
       hide(welcomeDiv);
       show(adminDiv);
