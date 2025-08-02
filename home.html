@@ -4,59 +4,14 @@
   <meta charset="UTF-8">
   <title>Home – My App</title>
   <link rel="stylesheet" href="css/style.css">
-  <style>
-    /* Simple nav styling */
-    nav {
-      background: #fff;
-      padding: 10px 20px;
-      border-radius: 5px;
-      margin-bottom: 20px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    }
-    nav ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      gap: 12px;
-    }
-    nav a {
-      text-decoration: none;
-      color: #0366d6;
-      font-weight: bold;
-    }
-    nav a:hover {
-      text-decoration: underline;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <!-- NAVIGATION MENU -->
-    <nav>
-      <ul>
-        <li><a href="home.html">Home</a></li>
-        <li><a href="StudentIndex.html">Manage Students</a></li>
-        <li><a href="instructors.html">Manage Instructors</a></li>
-        <li><a href="flights.html">Flight Entries</a></li>
-        <li id="adminLink" style="display:none;"><a href="admin.html">Admin Panel</a></li>
-      </ul>
-    </nav>
 
-    <!-- MAIN CONTENT -->
-    <div id="content" class="card">
-      <h1>Welcome to Your Homepage</h1>
-      <p>You’re logged in as <strong><span id="userEmail"></span></strong>.</p>
-      <button id="logoutBtn">Log Out</button>
-    </div>
-  </div>
-
-  <!-- FIREBASE + LOGIC -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
   <script>
-    // 1) Firebase init (same config as index.html)
+    // 1) Initialize Firebase
     const firebaseConfig = {
       apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
       authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
@@ -70,38 +25,53 @@
     const auth = firebase.auth();
     const db   = firebase.firestore();
 
-    // 2) Element refs
-    const userSpan  = document.getElementById('userEmail');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const adminLi   = document.getElementById('adminLink');
-
-    // Change to your actual admin email
-    const ADMIN_EMAIL = "admin@you.com";
-
-    // 3) Protect page & show menu
+    // 2) Redirect if not logged in; otherwise check admin role
     auth.onAuthStateChanged(user => {
       if (!user) {
-        // not logged in → back to login
         window.location.href = 'index.html';
         return;
       }
-      // show user email
-      userSpan.textContent = user.email;
 
-      // only show Admin link if Firestore role==='admin'
+      // Show user email
+      document.getElementById('userEmail').textContent = user.email;
+
+      // Look up their role in Firestore
       db.collection('roles').doc(user.uid).get()
         .then(doc => {
-          const role = doc.exists ? doc.data().role : 'user';
-          if (role === 'admin') adminLi.style.display = 'inline';
+          const isAdmin = doc.exists && doc.data().admin === true;
+          document.getElementById('adminNav').style.display = isAdmin ? 'inline-block' : 'none';
         })
         .catch(() => {
-          // if error, just hide admin
-          adminLi.style.display = 'none';
+          // on error, hide admin link
+          document.getElementById('adminNav').style.display = 'none';
         });
     });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <!-- NAVIGATION -->
+    <nav>
+      <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="StudentIndex.html">Students</a></li>
+        <li><a href="instructors.html">Instructors</a></li>
+        <li><a href="flights.html">Flights</a></li>
+        <li id="adminNav" style="display:none;"><a href="admin.html">Admin Panel</a></li>
+      </ul>
+    </nav>
 
-    // 4) Log out
-    logoutBtn.addEventListener('click', () => {
+    <!-- MAIN CARD -->
+    <div class="card">
+      <h1>Welcome to Your Homepage</h1>
+      <p>You’re logged in as <strong><span id="userEmail"></span></strong>.</p>
+      <button id="logoutBtn">Log Out</button>
+    </div>
+  </div>
+
+  <script>
+    // Log out button
+    document.getElementById('logoutBtn').addEventListener('click', () => {
       auth.signOut().then(() => {
         window.location.href = 'index.html';
       });
