@@ -17,14 +17,11 @@
       border-radius: 5px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       width: 320px;
-      display: none;
     }
-    #login { display: block; }
     input, button {
       width: 100%; padding: 8px; margin-top: 8px; box-sizing: border-box;
     }
     #error { color: red; height: 1em; margin-top: 8px; }
-    #adminBtn { display: none; margin-top: 12px; }
     #googleLoginBtn {
       background: #4285F4; color: white; font-weight: bold;
     }
@@ -54,7 +51,7 @@
 
 <body>
   <!-- LOGIN CARD -->
-  <div id="login" class="card">
+  <div class="card" id="loginCard">
     <h2>Login</h2>
     <input id="email"    type="email"    placeholder="Email">
     <input id="password" type="password" placeholder="Password">
@@ -63,44 +60,13 @@
     <div id="error"></div>
   </div>
 
-  <!-- WELCOME CARD -->
-  <div id="welcome" class="card">
-    <h2>Welcome!</h2>
-    <p>Logged in as <strong><span id="currentUser"></span></strong>.</p>
-    <button id="adminBtn">Go to Admin Panel</button>
-    <button id="logoutBtn">Log Out</button>
-  </div>
-
-  <!-- ADMIN PANEL -->
-  <div id="adminPanel" class="card">
-    <h2>Admin Panel</h2>
-    <p>This screen is only visible to users with <em>role: "admin"</em> in Firestore.</p>
-    <p>Manage roles under:<br>
-      <a href="https://console.firebase.google.com" target="_blank">
-        Firebase → Firestore Database → roles collection
-      </a>
-    </p>
-    <button id="backBtn">Back</button>
-  </div>
-
-  <!-- APP LOGIC -->
   <script>
     // Grab elements
-    const loginDiv   = document.getElementById('login');
-    const welcomeDiv = document.getElementById('welcome');
-    const adminDiv   = document.getElementById('adminPanel');
-    const emailEl    = document.getElementById('email');
-    const passEl     = document.getElementById('password');
-    const loginBtn   = document.getElementById('loginBtn');
-    const googleBtn  = document.getElementById('googleLoginBtn');
-    const errorEl    = document.getElementById('error');
-    const userSpan   = document.getElementById('currentUser');
-    const adminBtn   = document.getElementById('adminBtn');
-    const logoutBtn  = document.getElementById('logoutBtn');
-    const backBtn    = document.getElementById('backBtn');
-
-    function show(el){ el.style.display = 'block'; }
-    function hide(el){ el.style.display = 'none'; }
+    const loginBtn  = document.getElementById('loginBtn');
+    const googleBtn = document.getElementById('googleLoginBtn');
+    const emailEl   = document.getElementById('email');
+    const passEl    = document.getElementById('password');
+    const errorEl   = document.getElementById('error');
 
     // Email/Password login
     loginBtn.addEventListener('click', () => {
@@ -116,48 +82,13 @@
         .catch(e => errorEl.textContent = e.message);
     });
 
-    // React to auth changes & fetch role
+    // Once auth state changes, redirect if logged in
     auth.onAuthStateChanged(user => {
-      if (!user) {
-        // Signed out
-        hide(welcomeDiv);
-        hide(adminDiv);
-        show(loginDiv);
-        errorEl.textContent = '';
-        return;
+      if (user) {
+        // User is signed in → go to home.html
+        window.location.href = 'home.html';
       }
-
-      // Signed in: show welcome
-      userSpan.textContent = user.email;
-      hide(loginDiv);
-      show(welcomeDiv);
-
-      // Lookup role in Firestore
-      db.collection('roles').doc(user.uid).get()
-        .then(doc => {
-          const role = doc.exists ? doc.data().role : 'user';
-          if (role === 'admin') show(adminBtn);
-          else hide(adminBtn);
-        })
-        .catch(err => {
-          console.error('Error fetching role:', err);
-          hide(adminBtn);
-        });
-    });
-
-    // Navigate to Admin Panel
-    adminBtn.addEventListener('click', () => {
-      hide(welcomeDiv);
-      show(adminDiv);
-    });
-    backBtn.addEventListener('click', () => {
-      hide(adminDiv);
-      show(welcomeDiv);
-    });
-
-    // Log out
-    logoutBtn.addEventListener('click', () => {
-      auth.signOut();
+      // If not signed in, do nothing (they stay on login card)
     });
   </script>
 </body>
