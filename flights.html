@@ -4,15 +4,52 @@
   <meta charset="UTF-8">
   <title>Flights</title>
   <link rel="stylesheet" href="css/style.css">
+
+  <!-- Firebase SDKs & Init -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8fTOQVk",
+      authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
+      projectId:         "aeroclubwebsiteapp",
+      storageBucket:     "aeroclubwebsiteapp.appspot.com",
+      messagingSenderId: "529559179400",
+      appId:             "1:529559179400:web:cd1ca2c64a3efcb0970f3d",
+      measurementId:     "G-X69J831LCJ"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db   = firebase.firestore();
+    // Auth guard
+    auth.onAuthStateChanged(user => {
+      if (!user) window.location.href = 'index.html';
+    });
+  </script>
 </head>
 <body>
   <div class="container">
+    <!-- NAVIGATION -->
+    <nav>
+      <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="StudentIndex.html">Students</a></li>
+        <li><a href="instructors.html">Instructors</a></li>
+        <li><a href="flights.html" class="active">Flights</a></li>
+        <li><a href="aircraft.html">Aircraft</a></li>
+        <li id="adminNav" style="display:none;"><a href="admin.html">Admin Panel</a></li>
+      </ul>
+    </nav>
+
+    <!-- FLIGHTS CARD -->
     <div class="card">
       <h2>Flight Entries</h2>
       <button id="addFlight">+ Add Flight</button>
       <table id="flightsTable"></table>
     </div>
   </div>
+
   <script src="js/flights.js"></script>
 </body>
 </html>
