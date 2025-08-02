@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Flights</n></title>
+  <title>Flights</title>
   <link rel="stylesheet" href="css/style.css">
 
   <!-- Firebase SDKs & Init -->
@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script>
     const firebaseConfig = {
-      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
+      apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8fTOQVk",
       authDomain:        "aeroclubwebsiteapp.firebaseapp.com",
       projectId:         "aeroclubwebsiteapp",
       storageBucket:     "aeroclubwebsiteapp.appspot.com",
@@ -22,14 +22,13 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db   = firebase.firestore();
-
     auth.onAuthStateChanged(user => {
       if (!user) window.location.href = 'index.html';
-      // show admin link if admin
       db.collection('roles').doc(user.uid).get()
         .then(doc => {
           const isAdmin = doc.exists && doc.data().admin === true;
-          document.getElementById('adminNav').style.display = isAdmin ? 'inline-block' : 'none';
+          document.getElementById('adminNav').style.display =
+            isAdmin ? 'inline-block' : 'none';
         });
     });
   </script>
@@ -82,17 +81,18 @@
       <button id="closeFlightModal" class="close-btn">&times;</button>
       <h3>Add Flight Entry</h3>
       <form id="flightForm">
-        <input name="faf" type="text" placeholder="FAF Number" required>
-        <input name="date" type="date" required>
-        <select name="student" required>
+        <input name="faf"        type="text"   placeholder="FAF Number" required>
+        <input name="date"       type="date"   placeholder="Date" required>
+        <select name="student"   required>
           <option value="">Select Student</option>
         </select>
-        <input name="membership" type="text" placeholder="Membership #" readonly>
-        <select name="aircraft" required>
+        <input name="membership" type="text"   placeholder="Membership #" readonly>
+        <select name="aircraft"  required>
           <option value="">Select Aircraft</option>
         </select>
-        <select name="lesson" required>
+        <select name="lesson"    required>
           <option value="">Select Lesson Type</option>
+          <!-- (list of lesson options) -->
           <option>Effects of Controls</option>
           <option>Straight & Level</option>
           <option>Climbing & Descending</option>
@@ -127,12 +127,13 @@
         <select name="pic" required>
           <option value="">Select PIC</option>
         </select>
-        <input name="vdoStart" type="number" placeholder="VDO Start" required>
-        <input name="vdoStop" type="number" placeholder="VDO Stop" required>
-        <input name="hours" type="number" placeholder="Hours Flown" readonly>
-        <input name="landings" type="number" placeholder="Total Landings" required>
-        <input name="fullStops" type="number" placeholder="Full Stops" required>
-        <input name="cost" type="number" step="0.01" placeholder="Flight Cost ($)" required>
+        <!-- allow decimals with step="0.01" -->
+        <input name="vdoStart" type="number" step="0.01" placeholder="VDO Start" required>
+        <input name="vdoStop"  type="number" step="0.01" placeholder="VDO Stop" required>
+        <input name="hours"    type="number" step="0.01" placeholder="Hours Flown" readonly>
+        <input name="landings" type="number" step="1"    placeholder="Total Landings" required>
+        <input name="fullStops"type="number" step="1"    placeholder="Full Stops" required>
+        <input name="cost"     type="number" step="0.01" placeholder="Flight Cost ($)" required>
         <button type="submit">Save Flight</button>
       </form>
     </div>
@@ -140,25 +141,25 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const addBtn    = document.getElementById('addFlightBtn');
-      const modal     = document.getElementById('flightModal');
-      const closeBtn  = document.getElementById('closeFlightModal');
-      const form      = document.getElementById('flightForm');
-      const tbody     = document.querySelector('#flightsTable tbody');
-      const studentSel= form.student;
-      const memberIn = form.membership;
-      const aircraftSel = form.aircraft;
-      const picSel    = form.pic;
-      const vdoStart  = form.vdoStart;
-      const vdoStop   = form.vdoStop;
-      const hoursIn   = form.hours;
-      const costIn    = form.cost;
+      const addBtn       = document.getElementById('addFlightBtn');
+      const modal        = document.getElementById('flightModal');
+      const closeBtn     = document.getElementById('closeFlightModal');
+      const form         = document.getElementById('flightForm');
+      const tbody        = document.querySelector('#flightsTable tbody');
+      const studentSel   = form.student;
+      const memberIn     = form.membership;
+      const aircraftSel  = form.aircraft;
+      const picSel       = form.pic;
+      const vdoStart     = form.vdoStart;
+      const vdoStop      = form.vdoStop;
+      const hoursIn      = form.hours;
+      const costIn       = form.cost;
 
       let students = [];
       let instructors = [];
       let aircrafts = [];
 
-      // Load reference data
+      // Load dropdown refs
       function loadRefs() {
         db.collection('students').orderBy('name').get().then(snap => {
           students = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -166,47 +167,46 @@
             students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
         });
         db.collection('instructors').orderBy('name').get().then(snap => {
-          instructors = snap.docs.map(d=>({id:d.id,...d.data()}));
+          instructors = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           picSel.innerHTML = '<option value="">Select PIC</option>' +
-            instructors.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+            instructors.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
         });
         db.collection('aircrafts').orderBy('reg').get().then(snap => {
-          aircrafts = snap.docs.map(d=>({id:d.id,...d.data()}));
+          aircrafts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           aircraftSel.innerHTML = '<option value="">Select Aircraft</option>' +
-            aircrafts.map(a=>`<option value="${a.id}">${a.reg}</option>`).join('');
+            aircrafts.map(a => `<option value="${a.id}">${a.reg}</option>`).join('');
         });
       }
 
-      // Calculate hours & cost
+      // Recalculate hours & cost, rounding to 2 decimals
       function recalc() {
         const vs = parseFloat(vdoStart.value) || 0;
-        const ve = parseFloat(vdoStop.value) || 0;
-        const hrs = Math.max(0, ve - vs);
-        hoursIn.value = hrs;
-        // find cost/hr for selected aircraft
-        const ac = aircrafts.find(a=>a.id===aircraftSel.value);
+        const ve = parseFloat(vdoStop.value)  || 0;
+        let hrs = Math.max(0, ve - vs);
+        hoursIn.value = hrs.toFixed(2);
+
+        const ac = aircrafts.find(a => a.id === aircraftSel.value);
         const costHr = ac ? ac.cost : 0;
-        const fs = parseInt(form.fullStops.value)||0;
-        const total = hrs * costHr + fs * 35;
+        const fs     = parseInt(form.fullStops.value) || 0;
+        let total    = hrs * costHr + fs * 35;
         costIn.value = total.toFixed(2);
       }
 
       // Fetch & render flights
       function fetchFlights() {
-        db.collection('flights').orderBy('date','desc').get().then(snap=>{
-          const flights = snap.docs.map(d=>({ id:d.id, ...d.data()}));
+        db.collection('flights').orderBy('date','desc').get().then(snap => {
+          const flights = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           renderFlights(flights);
         });
       }
-
       function renderFlights(flights) {
         tbody.innerHTML = '';
-        flights.forEach(f=>{
+        flights.forEach(f => {
           const tr = document.createElement('tr');
-          const student = students.find(s=>s.id===f.student)?.name || '';
-          const membership = students.find(s=>s.id===f.student)?.membership || '';
-          const aircraft = aircrafts.find(a=>a.id===f.aircraft)?.reg || '';
-          const pic = instructors.find(i=>i.id===f.pic)?.name || '';
+          const student   = students.find(s=>s.id===f.student)?.name || '';
+          const membership= students.find(s=>s.id===f.student)?.membership || '';
+          const aircraft  = aircrafts.find(a=>a.id===f.aircraft)?.reg || '';
+          const pic       = instructors.find(i=>i.id===f.pic)?.name || '';
           tr.innerHTML = `
             <td>${f.faf}</td>
             <td>${f.date}</td>
@@ -225,51 +225,76 @@
           `;
           tbody.appendChild(tr);
         });
-        // delete handlers
-        tbody.querySelectorAll('.delete-btn').forEach(btn=>{
+        tbody.querySelectorAll('.delete-btn').forEach(btn => {
           btn.onclick = () => {
-            db.collection('flights').doc(btn.dataset.id).delete().then(fetchFlights);
+            db.collection('flights').doc(btn.dataset.id)
+              .delete().then(fetchFlights);
           };
         });
       }
 
       // Modal controls
-      addBtn.onclick    = () => { modal.classList.add('active'); form.date.value = new Date().toISOString().split('T')[0]; };
-      closeBtn.onclick  = () => { modal.classList.remove('active'); form.reset(); hoursIn.value=''; costIn.value=''; };
-      modal.onclick     = e => { if(e.target===modal){ modal.classList.remove('active'); form.reset(); hoursIn.value=''; costIn.value=''; }};
+      addBtn.onclick = () => {
+        modal.classList.add('active');
+        form.date.value = new Date().toISOString().split('T')[0];
+      };
+      closeBtn.onclick = () => {
+        modal.classList.remove('active');
+        form.reset();
+        hoursIn.value = '';
+        costIn.value  = '';
+      };
+      modal.onclick = e => {
+        if (e.target === modal) {
+          modal.classList.remove('active');
+          form.reset();
+          hoursIn.value = '';
+          costIn.value  = '';
+        }
+      };
 
-      // Listeners
+      // Auto-fill membership
       studentSel.onchange = () => {
-        const s = students.find(st=>st.id===studentSel.value);
+        const s = students.find(st => st.id === studentSel.value);
         memberIn.value = s ? s.membership : '';
       };
-      [vdoStart, vdoStop, form.fullStops, aircraftSel].forEach(el => el.oninput = recalc);
 
-      // Form submit
-      form.addEventListener('submit', e=>{
+      // Recalc on inputs
+      [vdoStart, vdoStop, form.fullStops, aircraftSel].forEach(el => {
+        el.oninput = recalc;
+      });
+
+      // Handle form submit
+      form.addEventListener('submit', e => {
         e.preventDefault();
         const data = new FormData(form);
         const entry = {
-          faf: data.get('faf'),
-          date: data.get('date'),
-          student: data.get('student'),
-          aircraft: data.get('aircraft'),
-          lesson: data.get('lesson'),
-          pic: data.get('pic'),
-          vdoStart: parseFloat(data.get('vdoStart')),
-          vdoStop: parseFloat(data.get('vdoStop')),
-          hours: parseFloat(data.get('hours')),
-          landings: parseInt(data.get('landings')),
+          faf:       data.get('faf'),
+          date:      data.get('date'),
+          student:   data.get('student'),
+          aircraft:  data.get('aircraft'),
+          lesson:    data.get('lesson'),
+          pic:       data.get('pic'),
+          vdoStart:  parseFloat(data.get('vdoStart')),
+          vdoStop:   parseFloat(data.get('vdoStop')),
+          hours:     parseFloat(data.get('hours')),
+          landings:  parseInt(data.get('landings')),
           fullStops: parseInt(data.get('fullStops')),
-          cost: parseFloat(data.get('cost'))
+          cost:      parseFloat(data.get('cost'))
         };
         db.collection('flights').add(entry)
-          .then(()=>{ modal.classList.remove('active'); form.reset(); hoursIn.value=''; costIn.value=''; fetchFlights(); });
+          .then(() => {
+            form.reset();
+            modal.classList.remove('active');
+            hoursIn.value = '';
+            costIn.value  = '';
+            fetchFlights();
+          });
       });
 
       // Initial load
       loadRefs();
-      setTimeout(fetchFlights, 500); // wait for refs to load
+      setTimeout(fetchFlights, 500);
     });
   </script>
 </body>
