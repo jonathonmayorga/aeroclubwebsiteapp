@@ -5,9 +5,12 @@
   <title>Manage Instructors</title>
   <link rel="stylesheet" href="css/style.css">
 
-  <!-- Firebase Auth Guard -->
+  <!-- 1) Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <!-- 2) Init & Auth Guard -->
   <script>
     const firebaseConfig = {
       apiKey:            "AIzaSyApuSW1IjB5U_9nDuV67ZlPJ8_C8fTOQVk",
@@ -20,8 +23,13 @@
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    auth.onAuthStateChanged(u => {
-      if (!u) window.location.href = 'index.html';
+    const db   = firebase.firestore();
+
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        // not signed in → back to login
+        window.location.href = 'index.html';
+      }
     });
   </script>
 </head>
@@ -38,15 +46,17 @@
       </ul>
     </nav>
 
+    <!-- HEADER -->
     <div class="header card">
       <h2>Instructors</h2>
       <button id="openModalBtn">+ Add Instructor</button>
     </div>
 
+    <!-- GRID -->
     <div id="instructorList"></div>
   </div>
 
-  <!-- Add Instructor Modal -->
+  <!-- ADD MODAL -->
   <div id="instructorModal" class="modal">
     <div class="modal-content">
       <button id="closeModalBtn" class="close-btn">&times;</button>
@@ -74,7 +84,7 @@
     </div>
   </div>
 
-  <!-- Profile Modal -->
+  <!-- PROFILE MODAL -->
   <div id="profileModal" class="modal">
     <div class="modal-content">
       <button id="closeProfileBtn" class="close-btn">&times;</button>
@@ -83,6 +93,108 @@
     </div>
   </div>
 
-  <script src="js/instructors.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const openBtn    = document.getElementById('openModalBtn');
+      const closeBtn   = document.getElementById('closeModalBtn');
+      const modal      = document.getElementById('instructorModal');
+      const form       = document.getElementById('instructorForm');
+      const list       = document.getElementById('instructorList');
+      const pModal     = document.getElementById('profileModal');
+      const closeProf  = document.getElementById('closeProfileBtn');
+      const pContent   = document.getElementById('profileContent');
+
+      // Utility to choose a date‐highlight class
+      function dateClass(d) {
+        const days = (new Date(d) - new Date())/(1000*60*60*24);
+        if (days < 0) return 'date-expired';
+        if (days < 30) return 'date-soon';
+        if (days <= 90) return '';      // white
+        return 'date-valid';
+      }
+
+      // Fetch + render
+      function fetchInstructors() {
+        db.collection('instructors').orderBy('name')
+          .get()
+          .then(snapshot => {
+            const ins = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            render(ins);
+          });
+      }
+
+      // Render grid
+      function render(ins) {
+        list.innerHTML = '';
+        ins.forEach((i,idx) => {
+          const card = document.createElement('div');
+          card.className = 'instructor-card';
+          card.innerHTML = `
+            <button class="delete-btn" data-id="${i.id}">&times;</button>
+            <h3 data-id="${i.id}" class="name-cell">${i.name}</h3>
+            <p>ARN: ${i.arn}</p>
+          `;
+          list.appendChild(card);
+        });
+        attachListeners(ins);
+      }
+
+      // Listeners
+      function attachListeners(ins) {
+        list.querySelectorAll('.delete-btn').forEach(btn =>
+          btn.onclick = () => {
+            db.collection('instructors').doc(btn.dataset.id)
+              .delete().then(fetchInstructors);
+          });
+        list.querySelectorAll('.name-cell').forEach(h3 =>
+          h3.onclick = () => showProfile(h3.dataset.id, ins));
+      }
+
+      // Show profile modal
+      function showProfile(id, ins) {
+        const i = ins.find(x=>x.id===id);
+        pContent.innerHTML = `
+          <p><strong>Name:</strong> ${i.name}</p>
+          <p><strong>ARN:</strong> ${i.arn}</p>
+          <p><strong>Grade:</strong> ${i.grade}</p>
+          <p class="${dateClass(i.med1)}"><strong>Medical 1:</strong> ${i.med1}</p>
+          <p class="${dateClass(i.med2)}"><strong>Medical 2:</strong> ${i.med2}</p>
+          <p class="${dateClass(i.damp)}"><strong>DAMP Course:</strong> ${i.damp}</p>
+          <p class="${dateClass(i.wwcc)}"><strong>WWCC:</strong> ${i.wwcc}</p>
+        `;
+        pModal.classList.add('active');
+      }
+
+      // Save & refetch
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        const d = new FormData(form);
+        db.collection('instructors').add({
+          name: d.get('name'),
+          arn: d.get('arn'),
+          grade: d.get('grade'),
+          med1: d.get('med1'),
+          med2: d.get('med2'),
+          damp: d.get('damp'),
+          wwcc: d.get('wwcc')
+        })
+        .then(() => {
+          form.reset();
+          modal.classList.remove('active');
+          fetchInstructors();
+        });
+      });
+
+      // Modal toggles
+      openBtn.onclick = () => modal.classList.add('active');
+      closeBtn.onclick = () => { modal.classList.remove('active'); form.reset(); };
+      modal.onclick    = e => { if(e.target===modal){modal.classList.remove('active');form.reset();} };
+      closeProf.onclick= () => pModal.classList.remove('active');
+      pModal.onclick   = e => { if(e.target===pModal) pModal.classList.remove('active'); };
+
+      // Initial load
+      fetchInstructors();
+    });
+  </script>
 </body>
 </html>
